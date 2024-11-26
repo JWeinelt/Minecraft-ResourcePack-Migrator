@@ -188,7 +188,7 @@ def main(lang="zh"):
         print(get_text("conversion_cancelled", lang))
         return False
 
-    required_packages = ['tqdm']
+    required_packages = ['rich']
     for package in required_packages:
         if not check_and_install_package(package, lang):
             return False
@@ -198,7 +198,8 @@ def main(lang="zh"):
 
     try:
         import converter
-        converter.main()
+        converter.CURRENT_LANG = lang
+        converter.main(lang)
         return True
     except ImportError:
         print(get_text("converter_not_found", lang))
@@ -213,7 +214,6 @@ if __name__ == "__main__":
     if sys.platform.startswith('win'):
         os.system('chcp 65001')
     
-    # 決定使用的語言（這裡可以根據需求修改，例如從系統設定或使用者輸入獲取）
     print("Choose language / 選擇語言:")
     print("1. 中文")
     print("2. English")
