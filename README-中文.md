@@ -6,7 +6,7 @@ README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md)  ]
 
 ## 主要功能
 
-- 自動轉換舊版本的物品模型 JSON 格式至 1.21+ 新格式
+- 自動轉換舊版本的物品模型 JSON 格式至 1.21.4+ 新格式
 - 自動調整資料夾結構（`assets/minecraft/models/item/*` → `assets/minecraft/items/*`）
 - 智慧處理 `minecraft:item/` 和 `item/` 的路徑前綴
 - 批次處理整個資源包
@@ -59,6 +59,7 @@ python run.py
     ]
 }
 ```
+` /give @s minecraft:stick{CustomModelData:19002} `
 
 新版本格式（1.21.4+）：
 ```json
@@ -82,6 +83,7 @@ python run.py
   }
 }
 ```
+` /give @s minecraft:stick[minecraft:custom_model_data={strings:['19002']}] `
 
 ## 使用需求
 
@@ -103,12 +105,12 @@ python run.py
 
 3. 檢視結果：
    - 程式會生成一個時間戳記命名的 ZIP 檔案（例：`converted_20240326_123456.zip`）
-   - 此 ZIP 檔案可直接作為 Minecraft 1.21+ 的資源包使用
+   - 此 ZIP 檔案可直接作為 Minecraft 1.21.4+ 的資源包使用
 
 ## 轉換規則
 
 1. JSON 格式更新：
-   - 更新為 1.21+ 的新物品模型格式
+   - 更新為 1.21.4+ 的新物品模型格式
    - 保留所有自訂模型資料（custom_model_data）
 
 2. 路徑處理：

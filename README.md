@@ -6,7 +6,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 
 ## Key Features
 
-- Automatically converts old item model JSON formats to 1.21+ new format
+- Automatically converts old item model JSON formats to 1.21.4+ new format
 - Automatically adjusts folder structure (`assets/minecraft/models/item/*` → `assets/minecraft/items/*`)
 - Intelligently handles `minecraft:item/` and `item/` path prefixes
 - Batch processes entire resource packs
@@ -16,7 +16,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 ## Supported Versions
 
 - Input: Minecraft resource packs from 1.14 to 1.20.4
-- Output: Minecraft 1.21+ compatible format
+- Output: Minecraft 1.21.4+ compatible format
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ python run.py
 
 ## Format Conversion Example
 
-Old format (1.20.4 and earlier):
+Old format (1.14 ~ 1.21.3):
 ```json
 {
     "parent": "item/handheld",
@@ -59,8 +59,9 @@ Old format (1.20.4 and earlier):
     ]
 }
 ```
+` /give @s minecraft:stick{CustomModelData:19002} `
 
-New format (1.21+):
+New format (1.21.4+):
 ```json
 {
   "model": {
@@ -82,6 +83,7 @@ New format (1.21+):
   }
 }
 ```
+` /give @s minecraft:stick[minecraft:custom_model_data={strings:['19002']}] `
 
 ## Requirements
 
@@ -103,12 +105,12 @@ Automatically installed packages:
 
 3. View results:
    - The program generates a timestamped ZIP file (e.g., `converted_20240326_123456.zip`)
-   - This ZIP file can be directly used as a Minecraft 1.21+ resource pack
+   - This ZIP file can be directly used as a Minecraft 1.21.4+ resource pack
 
 ## Conversion Rules
 
 1. JSON Format Update:
-   - Updates to 1.21+ new item model format
+   - Updates to 1.21.4+ new item model format
    - Preserves all custom model data
 
 2. Path Handling:
