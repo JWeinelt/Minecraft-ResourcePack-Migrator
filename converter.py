@@ -94,9 +94,16 @@ def count_files(directory):
 def convert_json_format(input_json):
     """
     將Minecraft的物品模型JSON格式轉換為新格式
+    
+    Args:
+        input_json (dict): 原始JSON格式的字典
+    Returns:
+        dict: 轉換後的新格式JSON字典
     """
+    # 獲取基本材質資訊並處理路徑
     base_texture = input_json.get("textures", {}).get("layer0", "")
     
+    # 處理材質路徑
     if base_texture:
         if base_texture.startswith("minecraft:item/"):
             base_texture = f"minecraft:item/{base_texture.split('minecraft:item/')[-1]}"
@@ -107,27 +114,27 @@ def convert_json_format(input_json):
     
     new_format = {
         "model": {
-            "type": "select",
+            "type": "range_dispatch",
             "property": "custom_model_data",
             "fallback": {
                 "type": "model",
                 "model": base_texture
             },
-            "cases": []
+            "entries": []
         }
     }
     
     if "overrides" in input_json:
         for override in input_json["overrides"]:
             if "predicate" in override and "custom_model_data" in override["predicate"]:
-                case = {
-                    "when": str(override["predicate"]["custom_model_data"]),
+                entry = {
+                    "threshold": int(override["predicate"]["custom_model_data"]),
                     "model": {
                         "type": "model",
                         "model": override["model"]
                     }
                 }
-                new_format["model"]["cases"].append(case)
+                new_format["model"]["entries"].append(entry)
     
     return new_format
 

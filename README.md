@@ -65,15 +65,15 @@ New format (1.21.4+):
 ```json
 {
   "model": {
-    "type": "select",
+    "type": "range_dispatch",
     "property": "custom_model_data",
     "fallback": {
       "type": "model",
       "model": "item/stick"
     },
-    "cases": [
+    "entries": [
       {
-        "when": "19002",
+        "threshold": 19002,
         "model": {
           "type": "model",
           "model": "custom_items/cat_hat/cat_hat_black"
@@ -83,7 +83,7 @@ New format (1.21.4+):
   }
 }
 ```
-` /give @s minecraft:stick[minecraft:custom_model_data={strings:['19002']}] `
+` /give @p minecraft:stick[custom_model_data={floats:[19002]}] `
 
 ## Requirements
 
