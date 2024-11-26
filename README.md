@@ -23,12 +23,12 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 1. Download the tool:
 ```bash
 git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
-cd resourcepack-migrator
+cd minecraft-resourcepack-migrator
 ```
 
 2. Prepare your resource pack:
 ```
-resourcepack-migrator/
+minecraft-resourcepack-migrator/
     ├── run.py           # Execution script
     ├── converter.py     # Converter program
     └── input/           # Your resource pack content

@@ -28,7 +28,7 @@ cd minecraft-resourcepack-migrator
 
 2. 準備你的資源包：
 ```
-resourcepack-migrator/
+minecraft-resourcepack-migrator/
     ├── run.py           # 執行腳本
     ├── converter.py     # 轉換程式
     └── input/           # 放入你的資源包內容
