@@ -21,7 +21,7 @@
 
 1. 下載此工具：
 ```bash
-git clone https://github.com/[your-username]/minecraft-resourcepack-migrator.git
+git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
 cd minecraft-resourcepack-migrator
 ```
 

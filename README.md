@@ -21,7 +21,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 
 1. Download the tool:
 ```bash
-git clone https://github.com/[your-username]/resourcepack-migrator.git
+git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
 cd resourcepack-migrator
 ```
 
