@@ -115,7 +115,8 @@ python build.py
 - pip（Python 套件管理器）
 
 自動安裝的套件：
-- tqdm（用於顯示進度條）
+- rich（用於顯示進度條）
+- pyinstaller （如果你要建構執行檔）
 
 ## 詳細使用步驟
 

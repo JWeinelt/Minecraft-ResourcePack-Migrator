@@ -115,7 +115,8 @@ New format (1.21.4+):
 - pip (Python package manager)
 
 Automatically installed packages:
-- tqdm (for progress bar display)
+- rich (for progress bar display)
+- pyinstaller (If you are building the executable)
 
 ## Detailed Usage Steps
 
