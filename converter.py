@@ -17,6 +17,12 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 from rich.text import Text
+from rich.table import Table
+from rich.console import Console
+from rich.style import Style
+from rich.panel import Panel
+
+console = Console()
 
 # 全域語言設定
 CURRENT_LANG = "zh"
@@ -64,12 +70,16 @@ TRANSLATIONS = {
         "en": "Processing complete!"
     },
     "converted_files_count": {
-        "zh": "已轉換 {} 個檔案:",
-        "en": "Converted {} files:"
+        "zh": "已轉換 {} 個檔案",
+        "en": "Converted {} files"
     },
     "output_file": {
-        "zh": "輸出檔案: {}",
-        "en": "Output file: {}"
+        "zh": "輸出檔案",
+        "en": "Output file"
+    },
+    "current_file": {
+        "zh": "當前檔案：{}",
+        "en": "Current file: {}"
     },
     "input_dir_error": {
         "zh": "錯誤：找不到輸入資料夾 '{}'",
@@ -82,29 +92,43 @@ TRANSLATIONS = {
     "speed_unit": {
         "zh": "檔案/秒",
         "en": "files/s"
-    }
+    },
+    "file_table_title": {
+        "zh": "檔案處理報告",
+        "en": "File Processing Report"
+    },
+    "file_name": {
+        "zh": "檔案名稱",
+        "en": "File Name"
+    },
+    "file_type": {
+        "zh": "類型",
+        "en": "Type"
+    },
+    "file_status": {
+        "zh": "狀態",
+        "en": "Status"
+    },
+    "status_converted": {
+        "zh": "已轉換",
+        "en": "Converted"
+    },
+    "status_copied": {
+        "zh": "已複製",
+        "en": "Copied"
+    },
 }
 
 def get_text(key, *args):
-    """
-    獲取指定語言的文字
-    
-    Args:
-        key (str): 文字索引
-        *args: 格式化參數
-    Returns:
-        str: 翻譯後的文字
-    """
+    """獲取指定語言的文字"""
     text = TRANSLATIONS.get(key, {}).get(CURRENT_LANG, f"Missing translation: {key}")
     if args:
         return text.format(*args)
     return text
 
 class CustomTimeElapsedColumn(TimeElapsedColumn):
-    """顯示經過時間"""
-
+    """自定義經過時間顯示"""
     def render(self, task: "Task") -> Text:
-        """顯示經過時間格式"""
         elapsed = task.finished_time if task.finished else task.elapsed
         if elapsed is None:
             return Text("--:--", style="progress.elapsed")
@@ -112,69 +136,74 @@ class CustomTimeElapsedColumn(TimeElapsedColumn):
         return Text(f"{minutes:02d}:{seconds:02d}", style="progress.elapsed")
 
 class CustomTransferSpeedColumn(TransferSpeedColumn):
-    """顯示傳輸速度"""
-
+    """自定義傳輸速度顯示"""
     def render(self, task: "Task") -> Text:
-        """顯示資料傳輸速度"""
         speed = task.finished_speed or task.speed
         if speed is None:
             return Text("?", style="progress.data.speed")
-        return Text(f"{speed:.2f} {get_text('speed_unit')}", style="progress.data.speed")
+        return Text(f"{speed:.1f} {get_text('speed_unit')}", style="progress.data.speed")
 
-class ProgressBar:
-    progress: Progress
-    task: TaskID
-
+class CustomProgressBar:
+    """自定義進度條"""
     def __init__(self, total: int, description: str):
-        """
-        初始化進度條
-        
-        Args:
-            total (int): 總數
-            description (str): 描述文字
-        """
         self.total = total
+        from rich.live import Live
+        from rich.console import Group
+        
+        # 主進度條配置
         self.progress = Progress(
-            TextColumn("[progress.description]{task.description}"),
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(complete_style="green", finished_style="green"),
             TaskProgressColumn(),
-            BarColumn(),
             MofNCompleteColumn(),
             CustomTimeElapsedColumn(),
-            TextColumn("<"),
-            TimeRemainingColumn(compact=True),
+            TextColumn("•"),
+            TimeRemainingColumn(),
             CustomTransferSpeedColumn(),
-            refresh_per_second=5,
+            refresh_per_second=10,
+            expand=True
         )
-        self.progress.start()
-        self.task = self.progress.add_task(f"[cyan]{description}", total=self.total)
+        
+        # 為檔案資訊建立文字欄位
+        self.file_text = Text("")
+        
+        # 建立群組來同時顯示進度條和檔案資訊
+        self.group = Group(
+            self.progress,
+            self.file_text
+        )
+        
+        # 使用 Live 來控制輸出
+        self.live = Live(
+            self.group,
+            refresh_per_second=10,
+            console=console
+        )
+        
+        self.live.start()
+        self.task = self.progress.add_task(description, total=self.total)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.progress.stop()
+        self.live.stop()
 
     def advance(self, step: int = 1):
-        self.progress.update(self.task, advance=step)
+        self.progress.advance(self.task, step)
+
+    def update_current_file(self, filename: str):
+        self.file_text.plain = get_text("current_file", filename)
 
 def count_files(directory):
-    """
-    計算目錄中的檔案總數
-    """
+    """計算目錄中的檔案總數"""
     total = 0
     for root, _, files in os.walk(directory):
         total += len(files)
     return total
 
 def convert_json_format(input_json):
-    """
-    將Minecraft的物品模型JSON格式轉換為新格式
-    
-    Args:
-        input_json (dict): 原始JSON格式的字典
-    Returns:
-        dict: 轉換後的新格式JSON字典
-    """
+    """轉換JSON格式"""
     base_texture = input_json.get("textures", {}).get("layer0", "")
     
     if base_texture:
@@ -212,18 +241,42 @@ def convert_json_format(input_json):
     return new_format
 
 def should_convert_json(json_data):
-    """檢查JSON檔案是否需要轉換"""
+    """檢查JSON是否需要轉換"""
     if "overrides" not in json_data:
         return False
     
-    for override in json_data["overrides"]:
+    for override in json_data.get("overrides", []):
         if "predicate" in override and "custom_model_data" in override["predicate"]:
             return True
     
     return False
 
+def create_file_table(processed_files):
+    """建立檔案處理報告表格"""
+    table = Table(
+        title=get_text("file_table_title"),
+        show_header=True,
+        header_style="bold magenta",
+        border_style="blue",
+        expand=True
+    )
+    
+    table.add_column(get_text("file_name"), style="cyan", ratio=3)
+    table.add_column(get_text("file_type"), style="green", justify="center", ratio=1)
+    table.add_column(get_text("file_status"), style="yellow", justify="center", ratio=1)
+    
+    for file_info in processed_files:
+        status_style = "green" if file_info["status"] == get_text("status_converted") else "blue"
+        table.add_row(
+            file_info["path"],
+            file_info["type"],
+            f"[{status_style}]{file_info['status']}[/{status_style}]"
+        )
+    
+    return table
+
 def adjust_folder_structure(base_dir):
-    """調整資料夾結構：將 models/item 移動到 items"""
+    """調整資料夾結構"""
     assets_path = os.path.join(base_dir, "assets", "minecraft")
     models_item_path = os.path.join(assets_path, "models", "item")
     items_path = os.path.join(assets_path, "items")
@@ -232,10 +285,10 @@ def adjust_folder_structure(base_dir):
         total_files = len(os.listdir(models_item_path))
         
         if total_files > 0:
-            print(f"\n{get_text('adjusting_structure')}")
+            console.print(f"\n[cyan]{get_text('adjusting_structure')}[/cyan]")
             os.makedirs(items_path, exist_ok=True)
             
-            with ProgressBar(total_files, get_text("moving_files")) as progress:
+            with CustomProgressBar(total_files, get_text("moving_files")) as progress:
                 for item in os.listdir(models_item_path):
                     src_path = os.path.join(models_item_path, item)
                     dst_path = os.path.join(items_path, item)
@@ -248,24 +301,16 @@ def adjust_folder_structure(base_dir):
                     progress.advance()
             
             shutil.rmtree(models_item_path)
-            print(get_text("moved_models", models_item_path, items_path))
+            console.print(f"[green]{get_text('moved_models', models_item_path, items_path)}[/green]")
 
 def process_directory(input_dir, output_dir):
-    """
-    處理整個資料夾的JSON檔案
-    
-    Args:
-        input_dir (str): 輸入資料夾路徑
-        output_dir (str): 輸出資料夾路徑
-    Returns:
-        list: 已轉換的檔案清單
-    """
-    converted_files = []
+    """處理目錄"""
+    processed_files = []
     total_files = count_files(input_dir)
     
     os.makedirs(output_dir, exist_ok=True)
     
-    with ProgressBar(total_files, get_text("processing_files")) as progress:
+    with CustomProgressBar(total_files, get_text("processing_files")) as progress:
         for root, dirs, files in os.walk(input_dir):
             relative_path = os.path.relpath(root, input_dir)
             output_root = os.path.join(output_dir, relative_path)
@@ -275,6 +320,9 @@ def process_directory(input_dir, output_dir):
             for file in files:
                 input_file = os.path.join(root, file)
                 output_file = os.path.join(output_root, file)
+                relative_path = os.path.relpath(input_file, input_dir)
+                
+                progress.update_current_file(relative_path)
                 
                 if file.lower().endswith('.json'):
                     try:
@@ -285,46 +333,53 @@ def process_directory(input_dir, output_dir):
                             converted_data = convert_json_format(json_data)
                             with open(output_file, 'w', encoding='utf-8') as f:
                                 json.dump(converted_data, f, indent=2)
-                            converted_files.append(os.path.relpath(input_file, input_dir))
+                            processed_files.append({
+                                "path": relative_path,
+                                "type": "JSON",
+                                "status": get_text("status_converted")
+                            })
                             progress.advance()
                             continue
                     except (json.JSONDecodeError, UnicodeDecodeError):
+                        processed_files.append({
+                            "path": relative_path,
+                            "type": "JSON (Invalid)",
+                            "status": get_text("status_copied")
+                        })
                         shutil.copy2(input_file, output_file)
                         progress.advance()
                         continue
                 
+                file_ext = os.path.splitext(file)[1][1:].upper() or "FILE"
+                processed_files.append({
+                    "path": relative_path,
+                    "type": file_ext,
+                    "status": get_text("status_copied")
+                })
                 shutil.copy2(input_file, output_file)
                 progress.advance()
     
-    return converted_files
+    return processed_files
 
 def create_zip(folder_path, zip_path):
-    """
-    將資料夾壓縮為ZIP檔案
-    
-    Args:
-        folder_path (str): 要壓縮的資料夾路徑
-        zip_path (str): 輸出的ZIP檔案路徑
-    """
+    """建立ZIP檔案"""
     total_files = count_files(folder_path)
     
-    print(f"\n{get_text('creating_zip')}")
+    console.print(f"\n[cyan]{get_text('creating_zip')}[/cyan]")
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        with ProgressBar(total_files, get_text("compressing_files")) as progress:
+        with CustomProgressBar(total_files, get_text("compressing_files")) as progress:
             for root, _, files in os.walk(folder_path):
                 for file in files:
                     file_path = os.path.join(root, file)
                     arc_name = os.path.relpath(file_path, folder_path)
+                    progress.update_current_file(arc_name)
                     zipf.write(file_path, arc_name)
                     progress.advance()
 
+# converter.py (續上一部分)
+
 def main(lang="zh"):
-    """
-    主程式
-    
-    Args:
-        lang (str): 語言代碼 (zh/en)
-    """
+    """主程式"""
     global CURRENT_LANG
     CURRENT_LANG = lang
     
@@ -335,23 +390,57 @@ def main(lang="zh"):
     
     try:
         if not os.path.exists(input_dir):
-            print(get_text("input_dir_error", input_dir))
+            console.print(Panel(
+                get_text("input_dir_error", input_dir),
+                style="red",
+                expand=False
+            ))
             return
         
-        print(get_text("processing_start"))
+        console.print(Panel(
+            get_text("processing_start"),
+            style="cyan",
+            expand=False
+        ))
         
-        converted_files = process_directory(input_dir, temp_output_dir)
+        processed_files = process_directory(input_dir, temp_output_dir)
         adjust_folder_structure(temp_output_dir)
         create_zip(temp_output_dir, zip_filename)
         
-        print(f"\n{get_text('process_complete')}")
-        print(get_text("converted_files_count", len(converted_files)))
-        for file in converted_files:
-            print(f"- {file}")
-        print(get_text("output_file", zip_filename))
+        console.print(f"\n[green]{get_text('process_complete')}[/green]")
+        
+        # 顯示處理報告
+        table = create_file_table(processed_files)
+        console.print("\n", table)
+        
+        # 顯示總結資訊
+        summary_table = Table.grid(expand=True)
+        summary_table.add_column(style="cyan", justify="left")
+        summary_table.add_column(style="green", justify="left")
+        
+        # 確保格式化字符串正確
+        converted_count = sum(1 for f in processed_files if f["status"] == get_text("status_converted"))
+        
+        # 添加行，確保正確的格式化和對齊
+        summary_table.add_row(
+            f"[bold]{get_text('converted_files_count', converted_count)}[/bold]"
+        )
+        summary_table.add_row(
+            f"[bold]{get_text('output_file')}:[/bold] {zip_filename}"
+        )
+        
+        console.print("\n", Panel(
+            summary_table,
+            border_style="blue",
+            expand=False
+        ))
         
     except Exception as e:
-        print(get_text("error_occurred", str(e)))
+        console.print(Panel(
+            get_text("error_occurred", str(e)),
+            style="red",
+            expand=False
+        ))
     
     finally:
         if os.path.exists(temp_output_dir):
