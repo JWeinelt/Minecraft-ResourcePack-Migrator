@@ -1,4 +1,4 @@
-README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md)  ]
+README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) ]
 # Minecraft-ResourcePack-Migrator 1.14 ~ 1.21.4+
 
 A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.
@@ -12,38 +12,62 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 - Batch processes entire resource packs
 - Real-time conversion progress display
 - Automatically packages into a ready-to-use resource pack
+- GUI interface for easy operation
 
 ## Supported Versions
 
-- Input: Minecraft resource packs from 1.14 to 1.20.4
+- Input: Minecraft resource packs from 1.14 to 1.21.3
 - Output: Minecraft 1.21.4+ compatible format
 
-## Quick Start
+## Installation & Usage
 
-1. Download the tool:
+### Method 1: Using Executable (Recommended)
+1. Download the latest release from the [Releases](https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator/releases) page
+2. Run the executable file (MCPackConverter.exe)
+3. Choose your preferred language (English/中文)
+4. Use the GUI to:
+   - Select folder or ZIP file containing your resource pack
+   - Click "Start Convert" to begin conversion
+   - Find the converted resource pack in the output folder
+
+### Method 2: Using Source Code
+1. Clone the repository:
 ```bash
 git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
 cd minecraft-resourcepack-migrator
 ```
 
-2. Prepare your resource pack:
-```
-minecraft-resourcepack-migrator/
-    ├── run.py           # Execution script
-    ├── converter.py     # Converter program
-    └── input/           # Your resource pack content
-        └── assets/
-            └── minecraft/
-                ├── models/
-                │   └── item/   # Item model files
-                ├── textures/   # Texture files
-                └── ...        # Other resource pack files
+2. Install requirements:
+```bash
+pip install rich
 ```
 
-3. Run the conversion:
+3. Run the program:
+   - GUI Version: `python gui_app.py`
+   - Command Line Version: `python run.py`
+
+### Method 3: Build Your Own Executable
+1. Clone the repository:
 ```bash
-python run.py
+git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
+cd minecraft-resourcepack-migrator
 ```
+
+2. Install required packages:
+```bash
+pip install pyinstaller rich
+```
+
+3. Run the build script:
+```bash
+python build.py
+```
+
+4. Find the executable:
+   - The built executable will be in the `dist` folder
+   - You can run `MCPackConverter.exe` directly from there
+
+Note: Building the executable requires administrator privileges due to file path configurations.
 
 ## Format Conversion Example
 

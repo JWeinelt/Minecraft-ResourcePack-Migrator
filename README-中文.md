@@ -1,4 +1,4 @@
-README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md)  ]
+README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
 # Minecraft-ResourcePack-Migrator 1.14 ~ 1.21.4+
 
 一個專門用於將 Minecraft 資源包（Resource Pack）從舊版本（1.14）轉換至 1.21.4+ 版本的工具。
@@ -12,38 +12,62 @@ README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md)  ]
 - 批次處理整個資源包
 - 即時顯示轉換進度
 - 自動打包為可直接使用的資源包
+- 圖形使用者介面，操作簡單
 
 ## 支援版本
 
 - 輸入：Minecraft 1.14 ~ 1.21.3 的資源包
 - 輸出：Minecraft 1.21.4+ 相容格式
 
-## 快速開始
+## 安裝與使用
 
-1. 下載此工具：
+### 方法一：使用執行檔（推薦）
+1. 從 [Releases](https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator/releases) 頁面下載最新版本
+2. 執行 MCPackConverter.exe
+3. 選擇你偏好的語言（中文/English）
+4. 使用圖形介面：
+   - 選擇資料夾或 ZIP 檔案
+   - 點擊「開始轉換」
+   - 在輸出資料夾中找到轉換後的資源包
+
+### 方法二：使用原始碼
+1. 複製專案：
 ```bash
 git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
 cd minecraft-resourcepack-migrator
 ```
 
-2. 準備你的資源包：
-```
-minecraft-resourcepack-migrator/
-    ├── run.py           # 執行腳本
-    ├── converter.py     # 轉換程式
-    └── input/           # 放入你的資源包內容
-        └── assets/
-            └── minecraft/
-                ├── models/
-                │   └── item/   # 物品模型檔案
-                ├── textures/   # 材質檔案
-                └── ...        # 其他資源包檔案
+2. 安裝需求套件：
+```bash
+pip install rich
 ```
 
-3. 執行轉換：
+3. 執行程式：
+   - 圖形介面版本：`python gui_app.py`
+   - 命令列版本：`python run.py`
+
+### 方法三：自行建構執行檔
+1. 複製專案：
 ```bash
-python run.py
+git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
+cd minecraft-resourcepack-migrator
 ```
+
+2. 安裝必要套件：
+```bash
+pip install pyinstaller rich
+```
+
+3. 執行建構腳本：
+```bash
+python build.py
+```
+
+4. 尋找執行檔：
+   - 建構完成的執行檔會在 `dist` 資料夾中
+   - 可以直接執行 `MCPackConverter.exe`
+
+注意：建構執行檔需要系統管理員權限，這是因為檔案路徑設定的需求。
 
 ## 格式轉換示例
 

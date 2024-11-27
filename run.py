@@ -3,11 +3,14 @@ import sys
 import os
 import time
 import json
+import shutil
+from datetime import datetime
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.prompt import Prompt
+import converter
 
 console = Console()
 
@@ -210,7 +213,11 @@ def main(lang="zh"):
         ))
         return False
 
+    # 確保輸入和輸出目錄存在
     input_dir = "input"
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+
     if not os.path.exists(input_dir):
         console.print(Panel(
             f"{get_text('input_dir_error', lang, input_dir)}\n{get_text('create_input_dir', lang, input_dir)}",
@@ -249,10 +256,37 @@ def main(lang="zh"):
     time.sleep(1)
 
     try:
-        import converter
+        # 設置 converter 的語言
         converter.CURRENT_LANG = lang
-        converter.main(lang)
-        return True
+        converter.console = console
+
+        # 創建輸出檔名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_zip = f"converted_{timestamp}.zip"
+        output_path = os.path.join(output_dir, output_zip)
+
+        # 執行轉換
+        temp_output_dir = f"temp_output_{timestamp}"
+        os.makedirs(temp_output_dir, exist_ok=True)
+
+        try:
+            # 使用 converter 的函數進行轉換
+            processed_files = converter.process_directory(input_dir, temp_output_dir)
+            converter.adjust_folder_structure(temp_output_dir)
+            converter.create_zip(temp_output_dir, output_path)
+
+            # 顯示報告
+            console.print(f"\n[green]{get_text('process_complete', lang)}[/green]")
+            table = converter.create_file_table(processed_files)
+            console.print("\n", table)
+
+            return True
+
+        finally:
+            # 清理臨時目錄
+            if os.path.exists(temp_output_dir):
+                shutil.rmtree(temp_output_dir)
+
     except ImportError:
         console.print(Panel(
             f"{get_text('converter_not_found', lang)}\n{get_text('check_converter_location', lang)}",
