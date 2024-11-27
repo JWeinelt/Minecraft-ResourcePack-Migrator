@@ -104,6 +104,14 @@ TRANSLATIONS = {
     "choose_language": {
         "zh": "選擇語言",
         "en": "Choose Language"
+    },
+    "column_number": {
+        "zh": "序號",
+        "en": "No."
+    },
+    "column_file_path": {
+        "zh": "檔案路徑",
+        "en": "File Path"
     }
 }
 
@@ -165,8 +173,9 @@ def display_convertible_files(files, lang):
         expand=True
     )
     
-    table.add_column("序號", style="cyan", justify="center")
-    table.add_column("檔案路徑", style="green")
+    # 使用翻譯後的列名
+    table.add_column(get_text("column_number", lang), style="cyan", justify="center")
+    table.add_column(get_text("column_file_path", lang), style="green")
     
     for i, file in enumerate(files, 1):
         table.add_row(str(i), file)
