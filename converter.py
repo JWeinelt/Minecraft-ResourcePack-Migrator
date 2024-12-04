@@ -2,11 +2,9 @@ import json
 import os
 import shutil
 import zipfile
-from pathlib import Path
 from datetime import datetime
 from rich.console import Console
 from rich.table import Table
-from rich.style import Style
 from rich.panel import Panel
 from rich.progress import (
     BarColumn,
@@ -23,11 +21,6 @@ from rich.progress import (
 CURRENT_LANG = "zh"
 console = Console()
 CustomProgress = None
-
-# GUI專用類型檢查
-class GuiConsoleBase:
-    """基礎GUI控制台類，用於類型檢查"""
-    pass
 
 # 檢查是否為GUI控制台
 def is_gui_console(console_obj):
@@ -64,17 +57,9 @@ TRANSLATIONS = {
         "zh": "移動檔案中",
         "en": "Moving files"
     },
-    "files": {
-        "zh": "檔案",
-        "en": "files"
-    },
     "processing_files": {
         "zh": "處理檔案中",
         "en": "Processing files"
-    },
-    "converting": {
-        "zh": "轉換中",
-        "en": "Converting"
     },
     "creating_zip": {
         "zh": "建立ZIP檔案...",
@@ -111,10 +96,6 @@ TRANSLATIONS = {
     "error_occurred": {
         "zh": "發生錯誤：{}",
         "en": "Error occurred: {}"
-    },
-    "speed_unit": {
-        "zh": "檔案/秒",
-        "en": "files/s"
     },
     "file_table_title": {
         "zh": "檔案處理報告",
@@ -157,7 +138,7 @@ def count_files(directory):
     return total
 
 def convert_json_format(input_json):
-    """轉換JSON格式"""
+    """轉換JSON格式 (Custom Model Data 模式)"""
     base_texture = input_json.get("textures", {}).get("layer0", "")
     
     if base_texture:
@@ -193,6 +174,53 @@ def convert_json_format(input_json):
                 new_format["model"]["entries"].append(entry)
     
     return new_format
+
+def convert_item_model_format(json_data, output_path):
+    """轉換物品模型格式 (Item Model 模式)"""
+    # 檢查是否包含必要的字段
+    if "overrides" not in json_data or not json_data["overrides"]:
+        return None
+    
+    # 遍歷所有 override
+    for override in json_data["overrides"]:
+        if "predicate" in override and "custom_model_data" in override["predicate"] and "model" in override:
+            model_path = override["model"]
+            
+            # 解析模型路徑
+            if ":" in model_path:
+                # 處理 "a:b" 格式
+                namespace, path = model_path.split(":", 1)
+                target_dir = os.path.join(output_path, namespace)
+            else:
+                # 處理 "a/b" 格式
+                parts = model_path.split("/")
+                target_dir = os.path.join(output_path, *parts[:-1])
+            
+            # 確保目標目錄存在
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # 構建新的 JSON 內容
+            new_json = {
+                "model": {
+                    "type": "model",
+                    "model": model_path
+                }
+            }
+            
+            # 構建目標文件路徑
+            if ":" in model_path:
+                # 對於 "a:b" 格式，保持完整路徑
+                file_name = os.path.join(output_path, model_path.replace(":", "/")) + ".json"
+            else:
+                # 對於 "a/b" 格式，直接使用完整路徑
+                file_name = os.path.join(output_path, model_path + ".json")
+            
+            # 確保目標文件的目錄存在
+            os.makedirs(os.path.dirname(file_name), exist_ok=True)
+            
+            # 寫入新文件
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(new_json, f, indent=2)
 
 def should_convert_json(json_data):
     """檢查JSON是否需要轉換"""
@@ -230,10 +258,10 @@ def create_file_table(processed_files):
     return table
 
 def process_directory(input_dir, output_dir):
-    """處理目錄"""
+    """處理目錄（Custom Model Data 模式）"""
     processed_files = []
     
-    # 先計算需要處理的 JSON 檔案數量
+    # 計算需要處理的 JSON 檔案數量
     json_files = []
     for root, _, files in os.walk(input_dir):
         for file in files:
@@ -254,7 +282,7 @@ def process_directory(input_dir, output_dir):
     with progress as progress_ctx:
         task = progress_ctx.add_task(get_text("processing_files"), total=total_files)
         
-        # 首先複製所有非 JSON 檔案
+        # 複製所有檔案到輸出目錄
         for root, dirs, files in os.walk(input_dir):
             relative_path = os.path.relpath(root, input_dir)
             output_root = os.path.join(output_dir, relative_path)
@@ -262,29 +290,26 @@ def process_directory(input_dir, output_dir):
             os.makedirs(output_root, exist_ok=True)
             
             for file in files:
-                if not file.lower().endswith('.json'):
-                    input_file = os.path.join(root, file)
-                    output_file = os.path.join(output_root, file)
-                    relative_path = os.path.relpath(input_file, input_dir)
-                    
-                    try:
-                        shutil.copy2(input_file, output_file)
+                input_file = os.path.join(root, file)
+                output_file = os.path.join(output_root, file)
+                relative_path = os.path.relpath(input_file, input_dir)
+                
+                try:
+                    shutil.copy2(input_file, output_file)
+                    if not file.lower().endswith('.json'):
                         processed_files.append({
                             "path": relative_path,
                             "type": "Other",
                             "status": get_text("status_copied")
                         })
-                    except Exception as e:
-                        console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
+                except Exception as e:
+                    console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
         
-        # 然後處理 JSON 檔案
+        # 處理 JSON 檔案
         for json_file in json_files:
             input_file = json_file
             relative_path = os.path.relpath(input_file, input_dir)
             output_file = os.path.join(output_dir, relative_path)
-            output_root = os.path.dirname(output_file)
-            
-            os.makedirs(output_root, exist_ok=True)
             
             if is_gui_console(console):
                 console.print(get_text("current_file", relative_path))
@@ -304,7 +329,6 @@ def process_directory(input_dir, output_dir):
                         "status": get_text("status_converted")
                     })
                 else:
-                    shutil.copy2(input_file, output_file)
                     processed_files.append({
                         "path": relative_path,
                         "type": "JSON",
@@ -315,6 +339,113 @@ def process_directory(input_dir, output_dir):
             
             processed_count += 1
             progress_ctx.update(task, completed=processed_count)
+    
+    return processed_files
+
+def process_directory_item_model(input_dir, output_dir):
+    """處理目錄（Item Model 轉換模式）"""
+    processed_files = []
+    
+    # 計算需要處理的 JSON 檔案數量
+    json_files = []
+    for root, _, files in os.walk(input_dir):
+        for file in files:
+            if file.lower().endswith('.json'):
+                json_files.append(os.path.join(root, file))
+    
+    total_files = len(json_files)
+    processed_count = 0
+    
+    # 確保輸出目錄存在
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 檢查是否為GUI模式
+    if is_gui_console(console) and CustomProgress:
+        progress = CustomProgress(console)
+    else:
+        progress = create_standard_progress()
+    
+    with progress as progress_ctx:
+        task = progress_ctx.add_task(get_text("processing_files"), total=total_files)
+        
+        # 首先複製所有檔案
+        for root, dirs, files in os.walk(input_dir):
+            relative_path = os.path.relpath(root, input_dir)
+            output_root = os.path.join(output_dir, relative_path)
+            
+            os.makedirs(output_root, exist_ok=True)
+            
+            for file in files:
+                if is_gui_console(console):
+                    console.print(get_text("current_file", file))
+                
+                input_file = os.path.join(root, file)
+                output_file = os.path.join(output_root, file)
+                shutil.copy2(input_file, output_file)
+                
+                if not file.lower().endswith('.json'):
+                    processed_files.append({
+                        "path": os.path.relpath(input_file, input_dir),
+                        "type": "Other",
+                        "status": get_text("status_copied")
+                    })
+        
+        # 處理 models/item 目錄中的 JSON 檔案
+        models_item_dir = os.path.join(output_dir, "assets", "minecraft", "models", "item")
+        items_dir = os.path.join(output_dir, "assets", "minecraft", "items")
+        
+        if os.path.exists(models_item_dir):
+            os.makedirs(items_dir, exist_ok=True)
+            processed_item_jsons = []
+            
+            # 首先移動所有 JSON 檔案
+            for root, _, files in os.walk(models_item_dir):
+                for file in files:
+                    if file.lower().endswith('.json'):
+                        src_path = os.path.join(root, file)
+                        dst_path = os.path.join(items_dir, file)
+                        
+                        if os.path.exists(dst_path):
+                            backup_path = f"{dst_path}.bak"
+                            shutil.move(dst_path, backup_path)
+                        
+                        shutil.move(src_path, dst_path)
+                        processed_item_jsons.append(dst_path)
+            
+            # 然後處理已移動的 JSON 檔案
+            for json_path in processed_item_jsons:
+                if is_gui_console(console):
+                    console.print(get_text("current_file", os.path.basename(json_path)))
+                
+                try:
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        json_data = json.load(f)
+                    
+                    # 檢查是否需要轉換
+                    if should_convert_json(json_data):
+                        # 轉換並建立新的檔案
+                        convert_item_model_format(json_data, items_dir)
+                        # 移除原始檔案
+                        os.remove(json_path)
+                        processed_files.append({
+                            "path": os.path.relpath(json_path, output_dir),
+                            "type": "JSON",
+                            "status": get_text("status_converted")
+                        })
+                    else:
+                        processed_files.append({
+                            "path": os.path.relpath(json_path, output_dir),
+                            "type": "JSON",
+                            "status": get_text("status_copied")
+                        })
+                except Exception as e:
+                    console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
+                
+                processed_count += 1
+                progress_ctx.update(task, completed=processed_count)
+            
+            # 移除空的 models/item 目錄
+            shutil.rmtree(models_item_dir)
     
     return processed_files
 
@@ -383,7 +514,6 @@ def create_zip(folder_path, zip_path):
                     
                     zipf.write(file_path, arc_name)
                     progress_ctx.update(task, advance=1)
-
 
 def main(lang="zh"):
     """主程式"""

@@ -6,13 +6,16 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 
 ## Key Features
 
-- Automatically converts old item model JSON formats to 1.21.4+ new format
+- Supports two conversion modes:
+  1. Custom Model Data Conversion: Converts old CustomModelData format to new format
+  2. Item Model Conversion: Converts to individual model files based on CustomModelData paths
 - Automatically adjusts folder structure (`assets/minecraft/models/item/*` → `assets/minecraft/items/*`)
 - Intelligently handles `minecraft:item/` and `item/` path prefixes
 - Batch processes entire resource packs
 - Real-time conversion progress display
 - Automatically packages into a ready-to-use resource pack
 - GUI interface for easy operation
+- Supports both English and Chinese interfaces
 
 ## Supported Versions
 
@@ -26,6 +29,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 2. Run the executable file (MCPackConverter.exe)
 3. Choose your preferred language (English/中文)
 4. Use the GUI to:
+   - Select conversion mode
    - Select folder or ZIP file containing your resource pack
    - Click "Start Convert" to begin conversion
    - Find the converted resource pack in the output folder
@@ -47,30 +51,25 @@ pip install rich
    - Command Line Version: `python run.py`
 
 ### Method 3: Build Your Own Executable
-1. Clone the repository:
+1. Clone the repository and install requirements:
 ```bash
 git clone https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator
 cd minecraft-resourcepack-migrator
-```
-
-2. Install required packages:
-```bash
 pip install pyinstaller rich
 ```
 
-3. Run the build script:
+2. Run the build script:
 ```bash
 python build.py
 ```
 
-4. Find the executable:
-   - The built executable will be in the `dist` folder
-   - You can run `MCPackConverter.exe` directly from there
+3. The executable will be available in the `dist` folder
 
-Note: Building the executable requires administrator privileges due to file path configurations.
+Note: Building the executable requires administrator privileges.
 
-## Format Conversion Example
+## Format Conversion Examples
 
+### Mode 1: Custom Model Data Conversion
 Old format (1.14 ~ 1.21.3):
 ```json
 {
@@ -83,7 +82,7 @@ Old format (1.14 ~ 1.21.3):
     ]
 }
 ```
-` /give @s minecraft:stick{CustomModelData:19002} `
+Command: `/give @s minecraft:stick{CustomModelData:19002}`
 
 New format (1.21.4+):
 ```json
@@ -107,7 +106,47 @@ New format (1.21.4+):
   }
 }
 ```
-` /give @p minecraft:stick[custom_model_data={floats:[19002]}] `
+Command: `/give @p minecraft:stick[custom_model_data={floats:[19002]}]`
+
+### Mode 2: Item Model Conversion
+Original file (`assets/minecraft/models/item/stick.json`):
+```json
+{
+    "parent": "item/handheld",
+    "textures": {
+        "layer0": "item/stick"
+    },
+    "overrides": [
+        {"predicate": {"custom_model_data": 19002}, "model":"custom_items/cat_hat/cat_hat_black"},
+        {"predicate": {"custom_model_data": 19003}, "model":"custom_items/cat_hat/cat_hat_british_shorthair"}
+    ]
+}
+```
+Command: `/give @p minecraft:stick[custom_model_data={floats:[19002]}]`
+Command: `/give @p minecraft:stick[custom_model_data={floats:[19003]}]`
+
+Converted files:
+1. `assets/minecraft/items/custom_items/cat_hat/cat_hat_black.json`:
+```json
+{
+  "model": {
+    "type": "model",
+    "model": "custom_items/cat_hat/cat_hat_black"
+  }
+}
+```
+Command: `/give @s itemname[item_model="custom_items/cat_hat/cat_hat_black"]`
+
+2. `assets/minecraft/items/custom_items/cat_hat/cat_hat_british_shorthair.json`:
+```json
+{
+  "model": {
+    "type": "model",
+    "model": "custom_items/cat_hat/cat_hat_british_shorthair"
+  }
+}
+```
+Command: `/give @s itemname[item_model="custom_items/cat_hat/cat_hat_british_shorthair"]`
 
 ## Requirements
 
@@ -116,35 +155,23 @@ New format (1.21.4+):
 
 Automatically installed packages:
 - rich (for progress bar display)
-- pyinstaller (If you are building the executable)
-
-## Detailed Usage Steps
-
-1. Prepare resource pack:
-   - Place your complete resource pack content in the `input` folder
-   - Maintain the original folder structure
-
-2. Run conversion:
-   - Windows: Double-click `run.py` or use command `python run.py`
-   - Mac/Linux: Execute `python3 run.py` in terminal
-
-3. View results:
-   - The program generates a timestamped ZIP file (e.g., `converted_20240326_123456.zip`)
-   - This ZIP file can be directly used as a Minecraft 1.21.4+ resource pack
+- pyinstaller (if building executable)
 
 ## Conversion Rules
 
-1. JSON Format Update:
-   - Updates to 1.21.4+ new item model format
-   - Preserves all custom model data
+1. Two Conversion Modes:
+   - Custom Model Data Mode: Updates to 1.21.4+ new item model format
+   - Item Model Mode: Creates individual model files based on CustomModelData paths
 
 2. Path Handling:
    - `minecraft:item/*` paths maintain their prefix
    - `item/*` paths maintain original format
+   - `namespace:path` format is preserved in item model conversion
    - Automatically adjusts item model storage location
 
 3. Folder Structure Adjustment:
    - Moves files from `models/item/*` to `items/*`
+   - Creates subdirectories based on model paths in Item Model mode
    - Preserves other folder structures
 
 ## Important Notes
@@ -154,17 +181,9 @@ Automatically installed packages:
 3. Test all custom item models in-game after conversion
 4. Check error messages if any issues are found
 
-## Troubleshooting
-
-If you encounter issues, check:
-1. Input folder structure correctness
-2. JSON file format validity
-3. Python version compatibility
-4. File read/write permissions
-
 ## Contributing
 
-Issues and Pull Requests are welcome to help improve this tool. Main areas for contribution:
+Issues and Pull Requests are welcome. Main areas for contribution:
 - Support for more model formats
 - Conversion efficiency improvements
 - Error handling enhancements
@@ -173,3 +192,5 @@ Issues and Pull Requests are welcome to help improve this tool. Main areas for c
 ## License
 
 GNU General Public License v3.0
+
+<!-- README-中文.md -->

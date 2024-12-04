@@ -5,7 +5,6 @@ import time
 import json
 import shutil
 from datetime import datetime
-from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -47,10 +46,6 @@ TRANSLATIONS = {
     "no_files_found": {
         "zh": "找不到需要轉換的檔案！",
         "en": "No files found for conversion!"
-    },
-    "please_check": {
-        "zh": "請檢查：",
-        "en": "Please check:"
     },
     "check_list_title": {
         "zh": "檢查清單",
@@ -115,6 +110,18 @@ TRANSLATIONS = {
     "column_file_path": {
         "zh": "檔案路徑",
         "en": "File Path"
+    },
+    "choose_mode": {
+        "zh": "選擇轉換模式",
+        "en": "Choose Conversion Mode"
+    },
+    "mode_cmd": {
+        "zh": "Custom Model Data 轉換",
+        "en": "Custom Model Data Conversion"
+    },
+    "mode_item": {
+        "zh": "Item Model 轉換",
+        "en": "Item Model Conversion"
     }
 }
 
@@ -236,6 +243,20 @@ def main(lang="zh"):
     
     display_convertible_files(convertible_files, lang)
 
+    # 選擇轉換模式
+    console.print(Panel(
+        get_text("choose_mode", lang),
+        style="cyan",
+        expand=False
+    ))
+    console.print("1. [green]" + get_text("mode_cmd", lang) + "[/green]")
+    console.print("2. [blue]" + get_text("mode_item", lang) + "[/blue]")
+    
+    mode_choice = Prompt.ask(
+        "Please enter 1 or 2 / 請輸入 1 或 2",
+        default="1"
+    ).strip()
+
     if not Prompt.ask(
         f"\n[cyan]{get_text('continue_prompt', lang)}[/cyan]",
         default="y"
@@ -270,9 +291,13 @@ def main(lang="zh"):
         os.makedirs(temp_output_dir, exist_ok=True)
 
         try:
-            # 使用 converter 的函數進行轉換
-            processed_files = converter.process_directory(input_dir, temp_output_dir)
-            converter.adjust_folder_structure(temp_output_dir)
+            # 根據選擇的模式執行轉換
+            if mode_choice == "1":
+                processed_files = converter.process_directory(input_dir, temp_output_dir)
+                converter.adjust_folder_structure(temp_output_dir)
+            else:
+                processed_files = converter.process_directory_item_model(input_dir, temp_output_dir)
+            
             converter.create_zip(temp_output_dir, output_path)
 
             # 顯示報告

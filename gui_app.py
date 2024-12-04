@@ -8,11 +8,11 @@ import stat
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from pathlib import Path
 import converter
 import json
 import threading
 from rich.console import Console
+import subprocess
 
 # 語言文字對照表
 TRANSLATIONS = {
@@ -23,6 +23,18 @@ TRANSLATIONS = {
     "language_selection": {
         "zh": "語言選擇 | Language Selection",
         "en": "語言選擇 | Language Selection"
+    },
+    "conversion_mode": {
+        "zh": "轉換模式",
+        "en": "Conversion Mode"
+    },
+    "mode_cmd": {
+        "zh": "Custom Model Data 轉換",
+        "en": "Custom Model Data Conversion"
+    },
+    "mode_item": {
+        "zh": "Item Model 轉換",
+        "en": "Item Model Conversion"
     },
     "file_list": {
         "zh": "檔案列表",
@@ -39,6 +51,10 @@ TRANSLATIONS = {
     "start_convert": {
         "zh": "開始轉換",
         "en": "Start Convert"
+    },
+    "author": {
+        "zh": "作者：RiceChen_",
+        "en": "Author: RiceChen_"
     },
     "clear_files": {
         "zh": "清除檔案",
@@ -199,6 +215,7 @@ class ResourcePackConverter(tk.Tk):
         # 設置變數
         self.current_lang = tk.StringVar(value="zh")
         self.current_lang.trace_add("write", self.update_language)
+        self.conversion_mode = tk.StringVar(value="cmd")
         self.processing = False
         
         # 設置程式目錄
@@ -261,6 +278,7 @@ class ResourcePackConverter(tk.Tk):
         
         self.create_title()
         self.create_language_selection()
+        self.create_conversion_mode()
         self.create_output_selection()
         self.create_file_list()
         self.create_buttons()
@@ -269,19 +287,46 @@ class ResourcePackConverter(tk.Tk):
 
     def create_title(self):
         """創建標題"""
+        title_frame = ttk.Frame(self.main_frame)
+        title_frame.pack(pady=10)
+        
         self.title_label = ttk.Label(
-            self.main_frame,
+            title_frame,
             text=get_text("title", self.current_lang.get()),
             font=('TkDefaultFont', 12, 'bold'),
             justify='center'
         )
-        self.title_label.pack(pady=10)
+        self.title_label.pack()
+        
+        self.author_label = ttk.Label(
+            title_frame,
+            text=get_text("author", self.current_lang.get()),
+            font=('TkDefaultFont', 9, 'bold'),
+            justify='center'
+        )
+        self.author_label.pack()
 
-    def create_output_directory(self):
-        """創建輸出目錄"""
-        output_dir = os.path.join(os.getcwd(), "output")
-        os.makedirs(output_dir, exist_ok=True)
-        return output_dir
+    def create_conversion_mode(self):
+        """創建轉換模式選擇"""
+        self.mode_frame = ttk.LabelFrame(
+            self.main_frame,
+            text=get_text("conversion_mode", self.current_lang.get())
+        )
+        self.mode_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Radiobutton(
+            self.mode_frame,
+            text=get_text("mode_cmd", self.current_lang.get()),
+            variable=self.conversion_mode,
+            value="cmd"
+        ).pack(side=tk.LEFT, padx=20, pady=5)
+        
+        ttk.Radiobutton(
+            self.mode_frame,
+            text=get_text("mode_item", self.current_lang.get()),
+            value="item",
+            variable=self.conversion_mode
+        ).pack(side=tk.LEFT, padx=20, pady=5)
 
     def create_output_selection(self):
         """創建輸出位置選擇區域"""
@@ -306,7 +351,7 @@ class ResourcePackConverter(tk.Tk):
             text=get_text("change_output_folder", self.current_lang.get()),
             command=self.change_output_location
         )
-        self.change_output_btn.pack(side=tk.RIGHT, padx=5, pady=5)    
+        self.change_output_btn.pack(side=tk.RIGHT, padx=5, pady=5)   
 
     def create_language_selection(self):
         """創建語言選擇區"""
@@ -435,17 +480,28 @@ class ResourcePackConverter(tk.Tk):
         
         self.title(get_text("title", lang))
         self.title_label.config(text=get_text("title", lang))
+        self.author_label.config(text=get_text("author", lang))
         self.lang_frame.config(text=get_text("language_selection", lang))
+        self.mode_frame.config(text=get_text("conversion_mode", lang))
         self.list_frame.config(text=get_text("file_list", lang))
+        self.output_frame.config(text=get_text("output_folder", lang))
         
+        # 更新所有按鈕文字
         self.folder_btn.config(text=get_text("choose_folder", lang))
         self.zip_btn.config(text=get_text("choose_zip", lang))
         self.convert_btn.config(text=get_text("start_convert", lang))
         self.clear_btn.config(text=get_text("clear_files", lang))
-
-        self.output_frame.config(text=get_text("output_folder", lang))
         self.change_output_btn.config(text=get_text("change_output_folder", lang))
         self.open_output_btn.config(text=get_text("open_output_folder", lang))
+        
+        # 更新轉換模式按鈕文字
+        for radio_button in self.mode_frame.winfo_children():
+            if isinstance(radio_button, ttk.Radiobutton):
+                value = radio_button.cget("value")
+                if value == "cmd":
+                    radio_button.config(text=get_text("mode_cmd", lang))
+                elif value == "item":
+                    radio_button.config(text=get_text("mode_item", lang))
         
         converter.CURRENT_LANG = lang
 
@@ -453,6 +509,14 @@ class ResourcePackConverter(tk.Tk):
         """設置按鈕狀態"""
         for btn in [self.folder_btn, self.zip_btn, self.convert_btn, self.clear_btn]:
             btn.state([state])
+        
+        # 同時設置模式選擇按鈕的狀態
+        for radio_button in self.mode_frame.winfo_children():
+            if isinstance(radio_button, ttk.Radiobutton):
+                if state == 'disabled':
+                    radio_button.state(['disabled'])
+                else:
+                    radio_button.state(['!disabled'])
 
     def handle_remove_readonly(self, func, path, exc):
         """處理唯讀檔案的刪除"""
@@ -597,7 +661,7 @@ class ResourcePackConverter(tk.Tk):
             # 創建時間戳記
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_zip = f"converted_{timestamp}.zip"
-            output_path = os.path.join(self.output_dir, output_zip)  # 使用設定的輸出目錄
+            output_path = os.path.join(self.output_dir, output_zip)
             
             # 準備目錄
             temp_input_dir = os.path.join(self.temp_dir, "input")
@@ -611,27 +675,21 @@ class ResourcePackConverter(tk.Tk):
                 os.makedirs(temp_output_dir)
             
             try:
-                # 執行轉換
-                processed_files = converter.process_directory(temp_input_dir, temp_output_dir)
-                
-                # 調整資料夾結構
-                converter.adjust_folder_structure(temp_output_dir)
-                
-                # 建立 ZIP
-                zip_temp_path = os.path.join(self.temp_dir, output_zip)
-                converter.create_zip(temp_output_dir, zip_temp_path)
+                # 根據選擇的模式執行轉換
+                if self.conversion_mode.get() == "cmd":
+                    processed_files = converter.process_directory(temp_input_dir, temp_output_dir)
+                    # 調整資料夾結構 (只在 CMD 模式下執行)
+                    converter.adjust_folder_structure(temp_output_dir)
+                else:
+                    processed_files = converter.process_directory_item_model(temp_input_dir, temp_output_dir)
                 
                 # 確保輸出目錄存在
-                os.makedirs(self.output_dir, exist_ok=True)
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 
-                # 如果目標檔案已存在，先刪除
+                # 建立 ZIP
+                converter.create_zip(temp_output_dir, output_path)
+                
                 if os.path.exists(output_path):
-                    os.remove(output_path)
-                
-                # 移動 ZIP 到最終位置
-                if os.path.exists(zip_temp_path):
-                    shutil.move(zip_temp_path, output_path)
-                    
                     self.after(0, messagebox.showinfo,
                         get_text("complete", lang),
                         get_text("conversion_complete", lang).format(output_zip)
