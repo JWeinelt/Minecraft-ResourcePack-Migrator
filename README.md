@@ -123,6 +123,7 @@ Original file (`assets/minecraft/models/item/stick.json`):
 }
 ```
 Command: `/give @p minecraft:stick[custom_model_data={floats:[19002]}]`
+
 Command: `/give @p minecraft:stick[custom_model_data={floats:[19003]}]`
 
 Converted files:

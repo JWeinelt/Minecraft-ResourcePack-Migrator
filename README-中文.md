@@ -123,6 +123,7 @@ python build.py
 }
 ```
 指令：`/give @s minecraft:stick{CustomModelData:19002}`
+
 指令：`/give @s minecraft:stick{CustomModelData:19003}`
 
 轉換後的檔案：
