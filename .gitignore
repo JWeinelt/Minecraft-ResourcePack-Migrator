@@ -3,3 +3,5 @@ input/
 __pycache__
 dist/
 build/
+output/
+uac_manifest.xml

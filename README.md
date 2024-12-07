@@ -4,6 +4,8 @@ README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) ]
 A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.
 This tool primarily handles the conversion of item model JSON formats, helping creators quickly update their resource packs.
 
+![image](https://github.com/user-attachments/assets/3764bdd4-69c1-436e-92b5-77d9180f3396)
+
 ## Key Features
 
 - Supports two conversion modes:

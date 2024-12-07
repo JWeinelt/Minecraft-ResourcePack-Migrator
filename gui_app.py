@@ -1,3 +1,22 @@
+"""
+Minecraft Resource Pack Converter GUI Application
+
+This application provides a graphical interface for converting Minecraft resource packs
+between different formats. It supports both Custom Model Data and Item Model conversions,
+with a bilingual interface (English/Chinese).
+
+Features:
+- Bilingual support (English/Chinese)
+- Two conversion modes: Custom Model Data and Item Model
+- Support for both folder and ZIP file inputs
+- Progress tracking and status display
+- Configurable output location
+- Cross-platform compatibility
+
+Author: RiceChen_
+Version: 1.1
+"""
+
 import sys
 import os
 import shutil
@@ -14,7 +33,8 @@ import threading
 from rich.console import Console
 import subprocess
 
-# 語言文字對照表
+# Language translation mapping dictionary
+# Keys are UI element identifiers, values are language-specific translations
 TRANSLATIONS = {
     "title": {
         "zh": "Minecraft 資源包更新工具 (1.14 ~ 1.21.4+)",
@@ -135,12 +155,35 @@ TRANSLATIONS = {
 }
 
 def get_text(key, lang):
-    """獲取指定語言的文字"""
+    """
+    Retrieve text in the specified language for a given key
+    
+    Args:
+        key (str): Translation key to look up
+        lang (str): Language code ('zh' or 'en')
+    
+    Returns:
+        str: Translated text or error message if translation not found
+    """
     return TRANSLATIONS.get(key, {}).get(lang, f"Missing translation: {key}")
 
 class GuiConsole(Console):
-    """GUI控制台類，用於處理進度顯示和輸出"""
+    """
+    Custom console class for GUI integration
+    
+    Extends rich.console.Console to provide GUI-specific functionality including
+    progress tracking and status updates through the GUI interface.
+    """
+    
     def __init__(self, status_label, progress_bar, progress_var):
+        """
+        Initialize GUI console with Tkinter widgets
+        
+        Args:
+            status_label: Label widget for status messages
+            progress_bar: Progressbar widget for progress display
+            progress_var: Variable for progress tracking
+        """
         super().__init__()
         self.status_label = status_label
         self.progress_bar = progress_bar
@@ -150,26 +193,41 @@ class GuiConsole(Console):
         self.completed = 0
 
     def print(self, *args, **kwargs):
-        """處理輸出訊息，更新狀態標籤"""
+        """
+        Handle output messages and update status label
+        
+        Converts rich console formatted text to plain text and updates the GUI status.
+        
+        Args:
+            *args: Variable length argument list for message components
+            **kwargs: Arbitrary keyword arguments
+        """
         message = " ".join(str(arg) for arg in args)
-        # 移除 rich 格式標記
+        # Remove rich format tags
         for tag in ['cyan', 'green', 'yellow', 'red', 'bold']:
             message = message.replace(f'[{tag}]', '').replace(f'[/{tag}]', '')
         
         self.status_label.after(0, self.status_label.config, {"text": message})
         
-        # 重置進度條
+        # Reset progress for specific operations
         if any(x in message.lower() for x in ["processing files", "moving files", "compressing files"]):
             self.reset_progress()
 
     def reset_progress(self):
-        """重置進度"""
+        """Reset progress tracking variables and progress bar display"""
         self.completed = 0
         self.total = 0
         self.progress_var.set(0)
 
     def update(self, completed=None, total=None, advance=1):
-        """更新進度條"""
+        """
+        Update progress bar status
+        
+        Args:
+            completed (int, optional): Number of completed items
+            total (int, optional): Total number of items
+            advance (int): Number of steps to advance
+        """
         if total is not None:
             self.total = total
         if completed is not None:
@@ -182,74 +240,122 @@ class GuiConsole(Console):
             self.progress_var.set(progress)
 
 class CustomProgress:
-    """自定義進度追蹤類"""
+    """
+    Custom progress tracking class for GUI integration
+    
+    Provides a progress tracking interface compatible with rich.progress
+    while updating GUI elements. Used as a bridge between the converter
+    module and the GUI.
+    """
+    
     def __init__(self, console):
+        """
+        Initialize progress tracker
+        
+        Args:
+            console: GuiConsole instance for progress updates
+        """
         self.console = console
 
     def __enter__(self):
+        """Context manager entry point"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit point"""
         pass
 
     def add_task(self, description, total=None):
+        """
+        Add a new progress tracking task
+        
+        Args:
+            description (str): Task description
+            total (int, optional): Total number of steps
+            
+        Returns:
+            int: Task ID (always 0 in this implementation)
+        """
         if total is not None:
             self.console.reset_progress()
             self.console.total = total
         return 0
 
     def update(self, task_id, advance=1, completed=None, total=None):
+        """
+        Update progress for a task
+        
+        Args:
+            task_id (int): Task identifier (ignored)
+            advance (int): Steps to advance
+            completed (int, optional): Completed steps
+            total (int, optional): Total steps
+        """
         if total is not None:
             self.console.total = total
         self.console.update(completed=completed, advance=advance)
 
 class ResourcePackConverter(tk.Tk):
+    """
+    Main application class for the Minecraft Resource Pack Converter
+    
+    Provides a graphical interface for converting Minecraft resource packs
+    between different formats. Handles file selection, conversion process,
+    progress display, and user interaction.
+    """
+    
     def __init__(self):
+        """Initialize the application window and setup required components"""
         super().__init__()
         
-        # 基本設置
+        # Basic window setup
         self.title(get_text("title", "zh"))
         self.geometry("800x600")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # 設置變數
+        # Initialize variables
         self.current_lang = tk.StringVar(value="zh")
         self.current_lang.trace_add("write", self.update_language)
         self.conversion_mode = tk.StringVar(value="cmd")
         self.processing = False
         
-        # 設置程式目錄
+        # Setup program directories
         self.program_dir = os.path.join(os.environ['ProgramFiles'], 'MCPackConverter')
         self.setup_directories()
         
-        # 創建臨時工作目錄
+        # Create temporary working directory
         self.temp_dir = tempfile.mkdtemp(prefix="mcpack_")
         os.chmod(self.temp_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
         os.makedirs(os.path.join(self.temp_dir, "input"), exist_ok=True)
         
-        # 設置輸出目錄
+        # Set output directory
         self.output_dir = os.path.join(self.program_dir, "output")
         
-        # 創建主框架
+        # Create main frame and GUI elements
         self.setup_gui()
         
-        # 初始化控制台和轉換器
+        # Initialize console and converter
         self.setup_console()
 
     def setup_directories(self):
-        """設置必要的目錄"""
+        """
+        Set up necessary program directories with appropriate permissions
+        
+        Creates program directories and sets appropriate access permissions.
+        Handles any permission-related errors during setup.
+        """
         try:
-            # 嘗試創建主程式目錄
+            # Create main program directory
             if not os.path.exists(self.program_dir):
                 os.makedirs(self.program_dir)
             
-            # 創建 input 和 output 目錄
+            # Create input and output directories
             for dir_name in ['input', 'output']:
                 dir_path = os.path.join(self.program_dir, dir_name)
                 if not os.path.exists(dir_path):
                     os.makedirs(dir_path)
             
-            # 設置目錄權限
+            # Set directory permissions
             for root, dirs, files in os.walk(self.program_dir):
                 for d in dirs:
                     dir_path = os.path.join(root, d)
@@ -260,19 +366,24 @@ class ResourcePackConverter(tk.Tk):
                     
         except PermissionError:
             messagebox.showerror(
-                "錯誤",
-                "無法創建必要的目錄，請以管理員身份運行程式。"
+                "Error",
+                "Unable to create necessary directories. Please run as administrator."
             )
             sys.exit(1)
         except Exception as e:
             messagebox.showerror(
-                "錯誤",
-                f"設置目錄時發生錯誤：{str(e)}"
+                "Error",
+                f"Error while setting up directories: {str(e)}"
             )
             sys.exit(1)
 
     def setup_gui(self):
-        """設置GUI元件"""
+        """
+        Set up the main GUI components
+        
+        Creates and configures all GUI elements including frames, buttons,
+        and other widgets.
+        """
         self.main_frame = ttk.Frame(self)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -286,7 +397,11 @@ class ResourcePackConverter(tk.Tk):
         self.create_status()
 
     def create_title(self):
-        """創建標題"""
+        """
+        Create and configure the application title section
+        
+        Creates a frame with the application title and author information
+        """
         title_frame = ttk.Frame(self.main_frame)
         title_frame.pack(pady=10)
         
@@ -307,7 +422,12 @@ class ResourcePackConverter(tk.Tk):
         self.author_label.pack()
 
     def create_conversion_mode(self):
-        """創建轉換模式選擇"""
+        """
+        Create the conversion mode selection section
+        
+        Creates radio buttons for selecting between Custom Model Data
+        and Item Model conversion modes
+        """
         self.mode_frame = ttk.LabelFrame(
             self.main_frame,
             text=get_text("conversion_mode", self.current_lang.get())
@@ -329,14 +449,20 @@ class ResourcePackConverter(tk.Tk):
         ).pack(side=tk.LEFT, padx=20, pady=5)
 
     def create_output_selection(self):
-        """創建輸出位置選擇區域"""
+        """
+        Create the output directory selection section
+        
+        Creates a frame showing the current output path and a button
+        to change the output location. Includes a label displaying the
+        current path and a button to modify it.
+        """
         self.output_frame = ttk.LabelFrame(
             self.main_frame,
             text=get_text("output_folder", self.current_lang.get())
         )
         self.output_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        # 顯示當前輸出路徑
+        # Display current output path with word wrap
         self.output_path_var = tk.StringVar(value=self.output_dir)
         path_label = ttk.Label(
             self.output_frame,
@@ -345,22 +471,28 @@ class ResourcePackConverter(tk.Tk):
         )
         path_label.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-        # 變更位置按鈕
+        # Change location button
         self.change_output_btn = ttk.Button(
             self.output_frame,
             text=get_text("change_output_folder", self.current_lang.get()),
             command=self.change_output_location
         )
-        self.change_output_btn.pack(side=tk.RIGHT, padx=5, pady=5)   
+        self.change_output_btn.pack(side=tk.RIGHT, padx=5, pady=5)
 
     def create_language_selection(self):
-        """創建語言選擇區"""
+        """
+        Create the language selection section
+        
+        Creates a frame with radio buttons for language selection (Chinese/English).
+        Changes take effect immediately upon selection.
+        """
         self.lang_frame = ttk.LabelFrame(
             self.main_frame,
             text=get_text("language_selection", self.current_lang.get())
         )
         self.lang_frame.pack(fill=tk.X, padx=5, pady=5)
         
+        # Chinese option
         ttk.Radiobutton(
             self.lang_frame,
             text="中文",
@@ -368,6 +500,7 @@ class ResourcePackConverter(tk.Tk):
             value="zh"
         ).pack(side=tk.LEFT, padx=20, pady=5)
         
+        # English option
         ttk.Radiobutton(
             self.lang_frame,
             text="English",
@@ -376,16 +509,23 @@ class ResourcePackConverter(tk.Tk):
         ).pack(side=tk.LEFT, padx=20, pady=5)
 
     def create_file_list(self):
-        """創建檔案列表"""
+        """
+        Create the file list display section
+        
+        Creates a scrollable listbox showing all JSON files that will be
+        processed during conversion. Includes a scrollbar for navigation.
+        """
         self.list_frame = ttk.LabelFrame(
             self.main_frame,
             text=get_text("file_list", self.current_lang.get())
         )
         self.list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
+        # Create and configure scrollbar
         scrollbar = ttk.Scrollbar(self.list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
+        # Create and configure listbox
         self.file_list = tk.Listbox(
             self.list_frame,
             yscrollcommand=scrollbar.set
@@ -394,14 +534,21 @@ class ResourcePackConverter(tk.Tk):
         scrollbar.config(command=self.file_list.yview)
 
     def create_buttons(self):
-        """創建按鈕"""
+        """
+        Create the control buttons section
+        
+        Creates two groups of buttons:
+        1. Left side: folder selection, ZIP selection, conversion start, and clear
+        2. Right side: output folder access
+        """
         btn_frame = ttk.Frame(self.main_frame)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # 左側按鈕
+        # Create left-side button frame
         left_frame = ttk.Frame(btn_frame)
         left_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
+        # Define and create main action buttons
         buttons = [
             ("folder_btn", "choose_folder", self.choose_folder),
             ("zip_btn", "choose_zip", self.choose_zip),
@@ -409,6 +556,7 @@ class ResourcePackConverter(tk.Tk):
             ("clear_btn", "clear_files", self.clear_files)
         ]
         
+        # Create each button with proper text and command
         for attr, text_key, command in buttons:
             btn = ttk.Button(
                 left_frame,
@@ -418,7 +566,7 @@ class ResourcePackConverter(tk.Tk):
             btn.pack(side=tk.LEFT, padx=5)
             setattr(self, attr, btn)
         
-        # 右側開啟資料夾按鈕
+        # Create output folder open button on right side
         self.open_output_btn = ttk.Button(
             btn_frame,
             text=get_text("open_output_folder", self.current_lang.get()),
@@ -427,7 +575,12 @@ class ResourcePackConverter(tk.Tk):
         self.open_output_btn.pack(side=tk.RIGHT, padx=5)
 
     def change_output_location(self):
-        """變更輸出位置"""
+        """
+        Handle output location change request
+        
+        Opens a directory selection dialog and updates the output location
+        if a new directory is selected.
+        """
         new_dir = filedialog.askdirectory(
             title=get_text("select_output_folder", self.current_lang.get()),
             initialdir=self.output_dir
@@ -437,7 +590,14 @@ class ResourcePackConverter(tk.Tk):
             self.output_path_var.set(new_dir)
 
     def open_output_folder(self):
-        """開啟輸出資料夾"""
+        """
+        Open the output folder in the system's file explorer
+        
+        Uses platform-specific commands to open the folder:
+        - Windows: explorer.exe
+        - macOS: open command
+        - Linux: xdg-open
+        """
         if sys.platform == "win32":
             os.startfile(self.output_dir)
         elif sys.platform == "darwin":  # macOS
@@ -446,7 +606,12 @@ class ResourcePackConverter(tk.Tk):
             subprocess.Popen(["xdg-open", self.output_dir])
 
     def create_progress(self):
-        """創建進度條"""
+        """
+        Create the progress bar
+        
+        Creates a progress bar for showing conversion progress
+        and file processing status.
+        """
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(
             self.main_frame,
@@ -456,7 +621,12 @@ class ResourcePackConverter(tk.Tk):
         self.progress_bar.pack(fill=tk.X, padx=5, pady=5)
 
     def create_status(self):
-        """創建狀態標籤"""
+        """
+        Create the status display
+        
+        Creates a label for showing status messages and progress information.
+        Text wraps automatically to fit the window width.
+        """
         self.status_label = ttk.Label(
             self.main_frame,
             text="",
@@ -465,7 +635,12 @@ class ResourcePackConverter(tk.Tk):
         self.status_label.pack(pady=5, fill=tk.X)
 
     def setup_console(self):
-        """設置控制台和轉換器"""
+        """
+        Initialize the console and converter components
+        
+        Creates a GUI console instance and configures the converter
+        module to use it for output and progress tracking.
+        """
         self.gui_console = GuiConsole(
             self.status_label,
             self.progress_bar,
@@ -475,18 +650,33 @@ class ResourcePackConverter(tk.Tk):
         converter.CustomProgress = CustomProgress
 
     def update_language(self, *args):
-        """更新介面語言"""
+        """
+        Update all interface text when language is changed
+        
+        Updates text in:
+        - Window title
+        - All labels and frame titles
+        - All buttons
+        - Conversion mode radio buttons
+        Also updates the converter module's language setting.
+        
+        Args:
+            *args: Variable arguments (unused, required for trace_add callback)
+        """
         lang = self.current_lang.get()
         
+        # Update window and main labels
         self.title(get_text("title", lang))
         self.title_label.config(text=get_text("title", lang))
         self.author_label.config(text=get_text("author", lang))
+        
+        # Update frame titles
         self.lang_frame.config(text=get_text("language_selection", lang))
         self.mode_frame.config(text=get_text("conversion_mode", lang))
         self.list_frame.config(text=get_text("file_list", lang))
         self.output_frame.config(text=get_text("output_folder", lang))
         
-        # 更新所有按鈕文字
+        # Update button text
         self.folder_btn.config(text=get_text("choose_folder", lang))
         self.zip_btn.config(text=get_text("choose_zip", lang))
         self.convert_btn.config(text=get_text("start_convert", lang))
@@ -494,7 +684,7 @@ class ResourcePackConverter(tk.Tk):
         self.change_output_btn.config(text=get_text("change_output_folder", lang))
         self.open_output_btn.config(text=get_text("open_output_folder", lang))
         
-        # 更新轉換模式按鈕文字
+        # Update conversion mode radio buttons
         for radio_button in self.mode_frame.winfo_children():
             if isinstance(radio_button, ttk.Radiobutton):
                 value = radio_button.cget("value")
@@ -503,14 +693,21 @@ class ResourcePackConverter(tk.Tk):
                 elif value == "item":
                     radio_button.config(text=get_text("mode_item", lang))
         
+        # Update converter module language
         converter.CURRENT_LANG = lang
 
     def set_buttons_state(self, state):
-        """設置按鈕狀態"""
+        """
+        Enable or disable all control buttons
+        
+        Args:
+            state (str): Button state ('disabled' or '!disabled')
+        """
+        # Update main buttons
         for btn in [self.folder_btn, self.zip_btn, self.convert_btn, self.clear_btn]:
             btn.state([state])
         
-        # 同時設置模式選擇按鈕的狀態
+        # Update conversion mode radio buttons
         for radio_button in self.mode_frame.winfo_children():
             if isinstance(radio_button, ttk.Radiobutton):
                 if state == 'disabled':
@@ -519,7 +716,19 @@ class ResourcePackConverter(tk.Tk):
                     radio_button.state(['!disabled'])
 
     def handle_remove_readonly(self, func, path, exc):
-        """處理唯讀檔案的刪除"""
+        """
+        Handle removal of read-only files
+        
+        Special handler for shutil.rmtree to handle read-only files on Windows.
+        
+        Args:
+            func: Original function that failed
+            path: Path to the file/directory
+            exc: Exception information tuple
+        
+        Raises:
+            Original exception if not a permission error
+        """
         excvalue = exc[1]
         if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
             os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
@@ -528,14 +737,26 @@ class ResourcePackConverter(tk.Tk):
             raise excvalue
 
     def process_files_async(self, input_path, is_zip=False):
-        """非同步處理檔案"""
+        """
+        Process input files asynchronously
+        
+        Handles both ZIP files and folders as input. Extracts/copies files
+        to a temporary directory while updating progress.
+        
+        Args:
+            input_path (str): Path to input ZIP file or folder
+            is_zip (bool): Whether the input is a ZIP file
+        """
         try:
+            # Prepare input directory
             input_dir = os.path.join(self.temp_dir, "input")
             if os.path.exists(input_dir):
                 shutil.rmtree(input_dir, onerror=self.handle_remove_readonly)
             os.makedirs(input_dir)
 
             lang = self.current_lang.get()
+            
+            # Handle ZIP file input
             if is_zip:
                 self.status_label.config(text=get_text("extracting", lang))
                 with zipfile.ZipFile(input_path, 'r') as zip_ref:
@@ -545,6 +766,8 @@ class ResourcePackConverter(tk.Tk):
                     for i, file in enumerate(file_list, 1):
                         zip_ref.extract(file, input_dir)
                         self.progress_var.set((i / total_files) * 100)
+                        
+            # Handle folder input
             else:
                 self.status_label.config(text=get_text("copying_files", lang))
                 total_items = sum([len(files) for root, _, files in os.walk(input_path) 
@@ -566,6 +789,7 @@ class ResourcePackConverter(tk.Tk):
                         processed += 1
                         self.progress_var.set((processed / total_items) * 100)
 
+            # Update UI after processing
             self.update_file_list()
             self.status_label.config(text="")
             self.progress_var.set(0)
@@ -579,7 +803,12 @@ class ResourcePackConverter(tk.Tk):
             self.after(0, self.set_buttons_state, '!disabled')
 
     def update_file_list(self):
-        """更新檔案列表"""
+        """
+        Update the file list display
+        
+        Scans the input directory for JSON files and updates the listbox
+        with their relative paths.
+        """
         self.file_list.delete(0, tk.END)
         input_dir = os.path.join(self.temp_dir, "input")
         for root, _, files in os.walk(input_dir):
@@ -589,7 +818,12 @@ class ResourcePackConverter(tk.Tk):
                     self.file_list.insert(tk.END, rel_path)
 
     def choose_folder(self):
-        """選擇資料夾"""
+        """
+        Handle folder selection
+        
+        Opens a folder selection dialog and starts processing the selected
+        folder if one is chosen. Processing is done in a separate thread.
+        """
         if self.processing:
             return
         
@@ -605,7 +839,13 @@ class ResourcePackConverter(tk.Tk):
             ).start()
 
     def choose_zip(self):
-        """選擇ZIP檔案"""
+        """
+        Handle ZIP file selection
+        
+        Opens a file selection dialog for ZIP files and starts processing
+        the selected file if one is chosen. Processing is done in a
+        separate thread.
+        """
         if self.processing:
             return
             
@@ -622,7 +862,12 @@ class ResourcePackConverter(tk.Tk):
             ).start()
 
     def clear_files(self):
-        """清除檔案"""
+        """
+        Clear the input file list and temporary directory
+        
+        Removes all files from the input directory, clears the file list display,
+        resets the progress bar, and clears the status message.
+        """
         self.file_list.delete(0, tk.END)
         input_dir = os.path.join(self.temp_dir, "input")
         if os.path.exists(input_dir):
@@ -632,7 +877,13 @@ class ResourcePackConverter(tk.Tk):
         self.status_label.config(text="")
 
     def start_conversion(self):
-        """開始轉換"""
+        """
+        Start the conversion process
+        
+        Validates that files are selected before starting conversion.
+        Conversion is performed in a separate thread to prevent GUI freezing.
+        Shows warning if no files are selected.
+        """
         lang = self.current_lang.get()
         if self.file_list.size() == 0:
             messagebox.showwarning(
@@ -649,46 +900,59 @@ class ResourcePackConverter(tk.Tk):
         threading.Thread(target=self.convert_files).start()
 
     def convert_files(self):
-        """執行轉換"""
+        """
+        Execute the file conversion process
+        
+        Main conversion process handling both Custom Model Data and Item Model
+        conversions. Creates a ZIP file with the converted files.
+        
+        Process:
+        1. Prepares directories and paths
+        2. Performs conversion based on selected mode
+        3. Creates output ZIP file
+        4. Shows completion message or error
+        5. Cleans up temporary files
+        """
         try:
             lang = self.current_lang.get()
             original_cwd = os.getcwd()
             temp_output_dir = None
 
-            # 設置語言
+            # Set converter language
             converter.CURRENT_LANG = self.current_lang.get()
             
-            # 創建時間戳記
+            # Create timestamp and output paths
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_zip = f"converted_{timestamp}.zip"
             output_path = os.path.join(self.output_dir, output_zip)
             
-            # 準備目錄
+            # Setup directories
             temp_input_dir = os.path.join(self.temp_dir, "input")
             temp_output_dir = os.path.join(self.temp_dir, "temp_output")
             
-            # 設置工作目錄為臨時目錄
+            # Change to temp directory
             os.chdir(self.temp_dir)
             
-            # 確保輸出目錄存在
+            # Ensure output directory exists
             if not os.path.exists(temp_output_dir):
                 os.makedirs(temp_output_dir)
             
             try:
-                # 根據選擇的模式執行轉換
+                # Convert files based on selected mode
                 if self.conversion_mode.get() == "cmd":
                     processed_files = converter.process_directory(temp_input_dir, temp_output_dir)
-                    # 調整資料夾結構 (只在 CMD 模式下執行)
+                    # Adjust folder structure (CMD mode only)
                     converter.adjust_folder_structure(temp_output_dir)
                 else:
                     processed_files = converter.process_directory_item_model(temp_input_dir, temp_output_dir)
                 
-                # 確保輸出目錄存在
+                # Ensure output directory exists
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 
-                # 建立 ZIP
+                # Create ZIP file
                 converter.create_zip(temp_output_dir, output_path)
                 
+                # Show completion message
                 if os.path.exists(output_path):
                     self.after(0, messagebox.showinfo,
                         get_text("complete", lang),
@@ -700,7 +964,7 @@ class ResourcePackConverter(tk.Tk):
                     ))
                 
             finally:
-                # 恢復原始工作目錄
+                # Restore original working directory
                 os.chdir(original_cwd)
             
         except Exception as e:
@@ -709,13 +973,13 @@ class ResourcePackConverter(tk.Tk):
                         str(e))
             
         finally:
-            # 清理並重置
+            # Cleanup and reset UI
             self.processing = False
             self.progress_var.set(0)
             self.status_label.config(text="")
             self.after(0, self.set_buttons_state, '!disabled')
             
-            # 清理臨時輸出目錄
+            # Remove temporary output directory
             if temp_output_dir and os.path.exists(temp_output_dir):
                 try:
                     shutil.rmtree(temp_output_dir, onerror=self.handle_remove_readonly)
@@ -723,7 +987,13 @@ class ResourcePackConverter(tk.Tk):
                     pass
 
     def on_closing(self):
-        """關閉視窗時的處理"""
+        """
+        Handle application closing
+        
+        Shows confirmation dialog before closing, with different messages
+        depending on whether processing is in progress. Cleans up temporary
+        files before exit.
+        """
         lang = self.current_lang.get()
         if self.processing:
             response = messagebox.askokcancel(
@@ -747,24 +1017,36 @@ class ResourcePackConverter(tk.Tk):
             self.quit()
 
 def main():
-    """主程式"""
+    """
+    Main program entry point
+    
+    Initializes the application with proper character encoding and
+    handles any unexpected errors during startup.
+    
+    Sets up:
+    - Character encoding for Windows systems
+    - Main application window
+    - Error handling and reporting
+    """
     try:
+        # Set UTF-8 encoding for Windows systems
         if sys.platform.startswith('win'):
             os.system('chcp 65001')
         
+        # Create and run main application
         app = ResourcePackConverter()
         app.mainloop()
     except Exception as e:
-        # 顯示錯誤訊息
+        # Handle unexpected errors
         import traceback
-        error_message = f"發生錯誤:\n{str(e)}\n\n詳細資訊:\n{traceback.format_exc()}"
+        error_message = f"An error occurred:\n{str(e)}\n\nDetails:\n{traceback.format_exc()}"
         if 'app' in locals() and hasattr(app, 'destroy'):
-            messagebox.showerror("錯誤", error_message)
+            messagebox.showerror("Error", error_message)
             app.destroy()
         else:
-            # 如果 GUI 尚未創建，使用控制台輸出
+            # Fallback to console output if GUI hasn't been created
             print(error_message)
-            input("按 Enter 鍵關閉程式...")
+            input("Press Enter to close...")
         sys.exit(1)
 
 if __name__ == "__main__":
