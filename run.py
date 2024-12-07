@@ -39,7 +39,110 @@ TRANSLATIONS = {
         "zh": "檢查 Python 環境...",
         "en": "Checking Python environment..."
     },
-    # ... (rest of translations)
+    "python_version_error": {
+        "zh": "錯誤：需要 Python 3.6 或更新版本",
+        "en": "Error: Python 3.6 or newer is required"
+    },
+    "installing_package": {
+        "zh": "正在安裝必要套件 {}...",
+        "en": "Installing required package {}..."
+    },
+    "package_install_error": {
+        "zh": "錯誤：無法安裝 {}",
+        "en": "Error: Unable to install {}"
+    },
+    "input_dir_error": {
+        "zh": "錯誤：找不到輸入資料夾 '{}'",
+        "en": "Error: Input directory '{}' not found"
+    },
+    "create_input_dir": {
+        "zh": "請建立 '{}' 資料夾並放入要轉換的檔案",
+        "en": "Please create '{}' directory and place files to convert"
+    },
+    "searching_files": {
+        "zh": "搜尋可轉換的檔案...",
+        "en": "Searching for convertible files..."
+    },
+    "no_files_found": {
+        "zh": "找不到需要轉換的檔案！",
+        "en": "No files found for conversion!"
+    },
+    "check_list_title": {
+        "zh": "檢查清單",
+        "en": "Checklist"
+    },
+    "check_json_exists": {
+        "zh": "輸入資料夾中有 JSON 檔案",
+        "en": "JSON files exist in input folder"
+    },
+    "check_json_format": {
+        "zh": "JSON 檔案包含 'overrides' 和 'custom_model_data' 欄位",
+        "en": "JSON files contain 'overrides' and 'custom_model_data' fields"
+    },
+    "check_file_location": {
+        "zh": "檔案放在正確的位置（{}/ 資料夾中）",
+        "en": "Files are in correct location (in {} folder)"
+    },
+    "found_files_title": {
+        "zh": "可轉換的檔案",
+        "en": "Convertible Files"
+    },
+    "continue_prompt": {
+        "zh": "是否繼續轉換？[Y/n]",
+        "en": "Continue conversion? [Y/n]"
+    },
+    "conversion_cancelled": {
+        "zh": "已取消轉換",
+        "en": "Conversion cancelled"
+    },
+    "env_check_complete": {
+        "zh": "環境檢查完成，開始執行轉換程式...",
+        "en": "Environment check complete, starting conversion..."
+    },
+    "converter_not_found": {
+        "zh": "錯誤：找不到轉換程式 (converter.py)",
+        "en": "Error: Converter program (converter.py) not found"
+    },
+    "check_converter_location": {
+        "zh": "請確認 converter.py 檔案在正確的位置",
+        "en": "Please ensure converter.py is in the correct location"
+    },
+    "execution_error": {
+        "zh": "執行過程中發生錯誤：{}",
+        "en": "Error during execution: {}"
+    },
+    "press_enter": {
+        "zh": "按 Enter 鍵結束程式...",
+        "en": "Press Enter to exit..."
+    },
+    "title": {
+        "zh": "Minecraft 資源包更新工具 (1.14 ~ 1.21.4+)",
+        "en": "Minecraft Resource Pack Migrator (1.14 ~ 1.21.4+)"
+    },
+    "choose_language": {
+        "zh": "選擇語言",
+        "en": "Choose Language"
+    },
+    "column_number": {
+        "zh": "序號",
+        "en": "No."
+    },
+    "column_file_path": {
+        "zh": "檔案路徑",
+        "en": "File Path"
+    },
+    "choose_mode": {
+        "zh": "選擇轉換模式",
+        "en": "Choose Conversion Mode"
+    },
+    "mode_cmd": {
+        "zh": "Custom Model Data 轉換",
+        "en": "Custom Model Data Conversion"
+    },
+    "mode_item": {
+        "zh": "Item Model 轉換",
+        "en": "Item Model Conversion"
+    }
 }
 
 def get_text(key, lang="zh", *args):
