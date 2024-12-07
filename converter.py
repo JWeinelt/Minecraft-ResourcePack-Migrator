@@ -95,7 +95,74 @@ TRANSLATIONS = {
         "zh": "調整資料夾結構...",
         "en": "Adjusting folder structure..."
     },
-    # ... (rest of translations remain unchanged)
+    "moving_files": {
+        "zh": "移動檔案中",
+        "en": "Moving files"
+    },
+    "processing_files": {
+        "zh": "處理檔案中",
+        "en": "Processing files"
+    },
+    "creating_zip": {
+        "zh": "建立ZIP檔案...",
+        "en": "Creating ZIP file..."
+    },
+    "compressing_files": {
+        "zh": "壓縮檔案中",
+        "en": "Compressing files"
+    },
+    "moved_models": {
+        "zh": "已將物品模型從 {} 移動到 {}",
+        "en": "Moved item models from {} to {}"
+    },
+    "process_complete": {
+        "zh": "處理完成！",
+        "en": "Processing complete!"
+    },
+    "converted_files_count": {
+        "zh": "已轉換 {} 個檔案",
+        "en": "Converted {} files"
+    },
+    "output_file": {
+        "zh": "輸出檔案",
+        "en": "Output file"
+    },
+    "current_file": {
+        "zh": "當前檔案：{}",
+        "en": "Current file: {}"
+    },
+    "input_dir_error": {
+        "zh": "錯誤：找不到輸入資料夾 '{}'",
+        "en": "Error: Input directory '{}' not found"
+    },
+    "error_occurred": {
+        "zh": "發生錯誤：{}",
+        "en": "Error occurred: {}"
+    },
+    "file_table_title": {
+        "zh": "檔案處理報告",
+        "en": "File Processing Report"
+    },
+    "file_name": {
+        "zh": "檔案名稱",
+        "en": "File Name"
+    },
+    "file_type": {
+        "zh": "類型",
+        "en": "Type"
+    },
+    "file_status": {
+        "zh": "狀態",
+        "en": "Status"
+    },
+    "status_converted": {
+        "zh": "已轉換",
+        "en": "Converted"
+    },
+    "status_copied": {
+        "zh": "已複製",
+        "en": "Copied"
+    },
 }
 
 def get_text(key, *args):
