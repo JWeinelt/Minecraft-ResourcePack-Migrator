@@ -1,24 +1,3 @@
-"""
-Minecraft Resource Pack Converter Module
-
-This module handles the conversion of Minecraft resource pack files between different formats.
-It supports both Custom Model Data and Item Model conversion modes with comprehensive features:
-
-Features:
-- Bilingual support (English/Chinese)
-- Both GUI and console interfaces
-- Progress tracking and reporting
-- ZIP file handling
-- Directory structure management
-- Detailed processing reports
-- Error handling and recovery
-
-The module can be used both as a standalone command-line tool and as part of a GUI application.
-
-Author: RiceChen_
-Version: 1.2.3
-"""
-
 import json
 import os
 import shutil
@@ -38,54 +17,12 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 
-# Global variables initialization
-CURRENT_LANG = "zh"  # Default language setting
-console = Console()   # Console instance for output handling
-CustomProgress = None # Custom progress tracking class (set by GUI)
+# Global variables
+CURRENT_LANG = "zh"
+console = Console()
+CustomProgress = None
 
-def is_gui_console(console_obj):
-    """
-    Check if the console object is a GUI console instance
-    
-    Args:
-        console_obj: Console object to check
-        
-    Returns:
-        bool: True if console is GUI console (has status_label and progress_bar), False otherwise
-    """
-    return hasattr(console_obj, 'status_label') and hasattr(console_obj, 'progress_bar')
-
-def create_standard_progress():
-    """
-    Create a standard command-line progress bar with rich formatting
-    
-    Creates a rich.progress.Progress instance with columns for:
-    - Task description with blue bold text
-    - Green progress bar
-    - Task completion percentage
-    - Items completed count
-    - Time elapsed
-    - Separator
-    - Time remaining
-    - Transfer speed
-    
-    Returns:
-        Progress: Configured progress bar instance
-    """
-    return Progress(
-        TextColumn("[bold blue]{task.description}"),
-        BarColumn(complete_style="green", finished_style="green"),
-        TaskProgressColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TextColumn("•"),
-        TimeRemainingColumn(),
-        TransferSpeedColumn(),
-        refresh_per_second=10,
-        expand=True
-    )
-
-# Language translation mapping
+# Language translations
 TRANSLATIONS = {
     "processing_start": {
         "zh": "開始處理檔案...",
@@ -166,261 +103,34 @@ TRANSLATIONS = {
 }
 
 def get_text(key, *args):
-    """
-    Retrieve translated text for the current language
-    
-    Args:
-        key (str): Translation key to look up
-        *args: Optional format arguments for the text
-    
-    Returns:
-        str: Translated text, formatted with args if provided
-    """
+    """Get translated text"""
     text = TRANSLATIONS.get(key, {}).get(CURRENT_LANG, f"Missing translation: {key}")
-    if args:
-        return text.format(*args)
-    return text
+    return text.format(*args) if args else text
 
-def count_files(directory):
-    """
-    Count total number of files in a directory and its subdirectories
-    
-    Args:
-        directory (str): Path to the directory to scan
-        
-    Returns:
-        int: Total number of files found in directory tree
-    """
-    total = 0
-    for root, _, files in os.walk(directory):
-        total += len(files)
-    return total
+def get_progress_bar():
+    """Create appropriate progress bar based on console type"""
+    if hasattr(console, 'status_label') and hasattr(console, 'progress_bar') and CustomProgress:
+        return CustomProgress(console)
+    return Progress(
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(complete_style="green", finished_style="green"),
+        TaskProgressColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TextColumn("•"),
+        TimeRemainingColumn(),
+        TransferSpeedColumn(),
+        refresh_per_second=10,
+        expand=True
+    )
 
-def create_crossbow_model_entry(base_model, pulling_states, arrow_model=None, firework_model=None):
-    """
-    Create a crossbow model entry with pulling states and ammunition types
-    
-    Args:
-        base_model (str): Base model path for standby state
-        pulling_states (list): List of dictionaries containing pulling states
-        arrow_model (str, optional): Model path for arrow-loaded state
-        firework_model (str, optional): Model path for firework-loaded state
-        
-    Returns:
-        dict: Configured crossbow model entry with all states
-    """
-    # Create condition for using/pulling state
-    model = {
-        "type": "minecraft:condition",
-        "property": "minecraft:using_item",
-        "on_false": {
-            "type": "minecraft:select",
-            "property": "minecraft:charge_type",
-            "fallback": {
-                "type": "minecraft:model",
-                "model": base_model
-            },
-            "cases": []
-        },
-        "on_true": {
-            "type": "minecraft:range_dispatch",
-            "property": "minecraft:crossbow/pull",
-            "fallback": {
-                "type": "minecraft:model",
-                "model": pulling_states[0]["model"] if pulling_states else base_model
-            },
-            "entries": []
-        }
-    }
-
-    # Add ammunition type cases
-    cases = model["on_false"]["cases"]
-    if arrow_model:
-        cases.append({
-            "model": {
-                "type": "minecraft:model",
-                "model": arrow_model
-            },
-            "when": "arrow"
-        })
-    if firework_model:
-        cases.append({
-            "model": {
-                "type": "minecraft:model",
-                "model": firework_model
-            },
-            "when": "rocket"
-        })
-
-    # Add pulling states
-    if pulling_states:
-        entries = model["on_true"]["entries"]
-        for state in pulling_states[1:]:  # Skip first state as it's used in fallback
-            entries.append({
-                "threshold": state.get("pull", 0.0),
-                "model": {
-                    "type": "minecraft:model",
-                    "model": state["model"]
-                }
-            })
-
-    return model
-
-def convert_crossbow_json_format(input_json):
-    """
-    Convert crossbow JSON format for Custom Model Data mode
-    
-    Args:
-        input_json (dict): Original JSON data
-        
-    Returns:
-        dict: Converted JSON in new format
-    """
-    # Extract base texture/model
-    base_texture = input_json.get("textures", {}).get("layer0", "minecraft:item/crossbow")
-    
-    # Create new format structure
-    new_format = {
-        "model": {
-            "type": "range_dispatch",
-            "property": "custom_model_data",
-            "fallback": {
-                "type": "minecraft:model",
-                "model": base_texture
-            },
-            "entries": []
-        }
-    }
-    
-    if "overrides" in input_json:
-        # Group overrides by custom_model_data
-        cmd_groups = {}
-        
-        for override in input_json["overrides"]:
-            if "predicate" not in override or "model" not in override:
-                continue
-                
-            predicate = override["predicate"]
-            cmd = predicate.get("custom_model_data")
-            
-            if cmd is None:
-                continue
-                
-            if cmd not in cmd_groups:
-                cmd_groups[cmd] = {
-                    "base": None,
-                    "pulling_states": [],
-                    "arrow": None,
-                    "firework": None
-                }
-            
-            # Categorize override based on predicates
-            if "pulling" in predicate:
-                pull_value = predicate.get("pull", 0.0)
-                cmd_groups[cmd]["pulling_states"].append({
-                    "pull": pull_value,
-                    "model": override["model"]
-                })
-            elif "charged" in predicate:
-                if predicate.get("firework", 0):
-                    cmd_groups[cmd]["firework"] = override["model"]
-                else:
-                    cmd_groups[cmd]["arrow"] = override["model"]
-            else:
-                cmd_groups[cmd]["base"] = override["model"]
-        
-        # Create entries for each custom model data value
-        for cmd, group in cmd_groups.items():
-            # Sort pulling states by pull value
-            pulling_states = sorted(group["pulling_states"], key=lambda x: x.get("pull", 0))
-            base_model = group["base"] or pulling_states[0]["model"] if pulling_states else base_texture
-            
-            entry = {
-                "threshold": int(cmd),
-                "model": create_crossbow_model_entry(
-                    base_model,
-                    pulling_states,
-                    group["arrow"],
-                    group["firework"]
-                )
-            }
-            new_format["model"]["entries"].append(entry)
-    
-    # Add any display settings from the original JSON
-    if "display" in input_json:
-        new_format["display"] = input_json["display"]
-    
-    return new_format
-
-def is_crossbow_model(json_data):
-    """
-    Check if the JSON data is for a crossbow model
-    
-    Args:
-        json_data (dict): JSON data to check
-        
-    Returns:
-        bool: True if the data represents a crossbow model
-    """
-    # Check textures
-    if "textures" in json_data and "layer0" in json_data["textures"]:
-        texture = json_data["textures"]["layer0"]
-        if "crossbow" in texture.lower():
-            return True
-    
-    # Check overrides for crossbow-specific predicates
-    if "overrides" in json_data:
-        for override in json_data.get("overrides", []):
-            predicate = override.get("predicate", {})
-            if any(key in predicate for key in ["pulling", "charged", "firework"]):
-                return True
-    
-    return False
-
-def create_bow_model_entry(pulling_states, base_model):
-    """
-    Create a bow model entry with pulling states
-    
-    Args:
-        pulling_states (list): List of dictionaries containing pulling states
-        base_model (str): Base model path for non-pulling state
-    
-    Returns:
-        dict: Configured bow model entry
-    """
-    return {
-        "type": "minecraft:condition",
-        "property": "minecraft:using_item",
-        "on_false": {
-            "type": "minecraft:model",
-            "model": base_model
-        },
-        "on_true": {
-            "type": "minecraft:range_dispatch",
-            "property": "minecraft:use_duration",
-            "scale": 0.05,
-            "fallback": {
-                "type": "minecraft:model",
-                "model": pulling_states[0]["model"] if pulling_states else base_model
-            },
-            "entries": [
-                {
-                    "threshold": state.get("pull", 0.0),
-                    "model": {
-                        "type": "minecraft:model",
-                        "model": state["model"]
-                    }
-                } for state in pulling_states[1:]
-            ]
-        }
-    }
-
-def convert_json_format(input_json):
+def convert_json_format(input_json, is_item_model=False):
     """
     Convert JSON format for Custom Model Data mode with special handling for bows and crossbows
     
     Args:
         input_json (dict): Original JSON data to convert
+        is_item_model (bool): Whether in Item Model mode
         
     Returns:
         dict: Converted JSON in new format
@@ -432,6 +142,8 @@ def convert_json_format(input_json):
         # Special handling for crossbow_standby
         if base_texture == "item/crossbow_standby":
             base_texture = "item/crossbow"
+        elif base_texture == "minecraft:item/crossbow_standby":
+            base_texture = "minecraft:item/crossbow"
         
         # Normal path normalization
         if base_texture.startswith("minecraft:item/"):
@@ -441,16 +153,13 @@ def convert_json_format(input_json):
         elif not base_texture.startswith("minecraft:"):
             base_texture = f"minecraft:item/{base_texture}"
 
-    # Create basic format structure
+    # Create basic structure
     new_format = {
         "model": {
-            "type": "range_dispatch",
-            "property": "custom_model_data",
-            "fallback": {
-                "type": "model",
-                "model": base_texture
-            },
-            "entries": []
+            "type": "range_dispatch" if not is_item_model else "model",
+            "property": "custom_model_data" if not is_item_model else None,
+            "fallback": {"type": "model", "model": base_texture},
+            "entries": [] if not is_item_model else None
         }
     }
 
@@ -462,9 +171,9 @@ def convert_json_format(input_json):
         return new_format
 
     # Detect model type and group overrides
-    is_bow = base_texture == "minecraft:item/bow"
-    is_crossbow = "crossbow" in base_texture.lower() if base_texture else False
-    
+    is_bow = "bow" in base_texture and "crossbow" not in base_texture
+    is_crossbow = "crossbow" in base_texture
+
     # Handle different model types
     if is_crossbow:
         # Group overrides by custom_model_data for crossbow
@@ -616,20 +325,25 @@ def convert_json_format(input_json):
                             "scale": 0.05,
                             "fallback": {
                                 "type": "minecraft:model",
-                                "model": pulling_states[0]["model"] if pulling_states else base_model
+                                "model": base_model
                             },
-                            "entries": [
-                                {
-                                    "threshold": state.get("pull", 0.0),
-                                    "model": {
-                                        "type": "minecraft:model",
-                                        "model": state["model"]
-                                    }
-                                } for state in pulling_states[1:]
-                            ]
+                            "entries": []
                         }
                     }
                 }
+                
+                # Add pulling states
+                if pulling_states:
+                    for state in pulling_states:
+                        if state["model"] != base_model:  # Skip if it's the same as base model
+                            entry["model"]["on_true"]["entries"].append({
+                                "threshold": state.get("pull", 0.0),
+                                "model": {
+                                    "type": "minecraft:model",
+                                    "model": state["model"]
+                                }
+                            })
+                
                 new_format["model"]["entries"].append(entry)
 
     else:
@@ -646,135 +360,6 @@ def convert_json_format(input_json):
                 new_format["model"]["entries"].append(entry)
 
     return new_format
-
-def is_bow_model(model_path):
-    """
-    Check if the model path is for a bow
-    
-    Args:
-        model_path (str): Model path to check
-        
-    Returns:
-        bool: True if the model is a bow variant
-    """
-    # Check for common bow model patterns
-    bow_patterns = [
-        "/bow0", "/bow1", "/bow2", "/bow_pulling_0", 
-        "/bow_pulling_1", "/bow_pulling_2", "_bow0", 
-        "_bow1", "_bow2"
-    ]
-    return any(pattern in model_path for pattern in bow_patterns)
-
-def group_bow_models(overrides):
-    """
-    Group bow models by their base name and pulling states
-    
-    Args:
-        overrides (list): List of model overrides
-        
-    Returns:
-        dict: Grouped bow models with base path and pulling states
-    """
-    bow_groups = {}
-    
-    for override in overrides:
-        if "predicate" not in override or "model" not in override:
-            continue
-            
-        model_path = override["model"]
-        if not is_bow_model(model_path):
-            continue
-            
-        # Extract base path (remove _pulling or number suffix)
-        base_path = model_path.rsplit('/', 1)[0]
-        base_model = model_path.rsplit('/', 1)[1]
-        
-        if base_path not in bow_groups:
-            bow_groups[base_path] = {
-                "base_model": None,
-                "pulling_states": []
-            }
-        
-        predicate = override["predicate"]
-        if "pulling" in predicate:
-            pull_value = predicate.get("pull", 0.0)
-            bow_groups[base_path]["pulling_states"].append({
-                "pull": pull_value,
-                "model": model_path
-            })
-        else:
-            # This is the base model (bow0)
-            bow_groups[base_path]["base_model"] = model_path
-            
-    return bow_groups
-
-def get_base_model_path(overrides, cmd):
-    """
-    Get the base model path from overrides for a specific custom_model_data value
-    
-    Args:
-        overrides (list): List of override entries
-        cmd (int): Custom model data value to look for
-        
-    Returns:
-        str: Base model path without special states, or None if not found
-    """
-    for override in overrides:
-        predicate = override.get("predicate", {})
-        if predicate.get("custom_model_data") != cmd:
-            continue
-            
-        # Check if this is a base model (no special states)
-        if not any(key in predicate for key in ["charged", "firework", "pulling", "pull"]):
-            return override["model"]
-    
-    return None
-
-def create_bow_json(base_model, pulling_states):
-    """
-    Create bow JSON structure in the new format
-    
-    Args:
-        base_model (str): Base model path
-        pulling_states (list): List of pulling states with pull values and models
-    
-    Returns:
-        dict: Configured bow JSON structure
-    """
-    # Sort pulling states by pull value and exclude base model
-    pulling_states = sorted(
-        [state for state in pulling_states if state["model"] != base_model],
-        key=lambda x: x["pull"]
-    )
-    
-    return {
-        "model": {
-            "type": "minecraft:condition",
-            "property": "minecraft:using_item",
-            "on_false": {
-                "type": "minecraft:model",
-                "model": base_model
-            },
-            "on_true": {
-                "type": "minecraft:range_dispatch",
-                "property": "minecraft:use_duration",
-                "scale": 0.05,
-                "fallback": {
-                    "type": "minecraft:model",
-                    "model": base_model
-                },
-                "entries": [
-                    {
-                        "threshold": state["pull"],
-                        "model": {
-                            "type": "minecraft:model",
-                            "model": state["model"]
-                        }
-                    } for state in pulling_states
-                ]
-            }
-        }
-    }
 
 def convert_item_model_format(json_data, output_path):
     """
@@ -795,37 +380,33 @@ def convert_item_model_format(json_data, output_path):
 
     if is_bow or is_crossbow:
         # First find the base model path for each CMD
-        for cmd in {override["predicate"]["custom_model_data"] 
-                   for override in json_data["overrides"] 
-                   if "predicate" in override and "custom_model_data" in override["predicate"]}:
-            
-            base_model = get_base_model_path(json_data["overrides"], cmd)
-            if base_model:
+        for override in json_data["overrides"]:
+            if "predicate" in override and "custom_model_data" in override["predicate"]:
+                cmd = override["predicate"]["custom_model_data"]
+                model_path = override["model"]
+                predicate = override["predicate"]
+
+                # Initialize group if not exists
                 if cmd not in cmd_groups:
                     cmd_groups[cmd] = {
-                        "base": base_model,
+                        "base": model_path if "pulling" not in predicate and "charged" not in predicate else None,
                         "pulling_states": [],
                         "arrow": None,
                         "firework": None
                     }
 
                 # Group other states for this CMD
-                for override in json_data["overrides"]:
-                    predicate = override.get("predicate", {})
-                    if predicate.get("custom_model_data") != cmd:
-                        continue
-
-                    if "pulling" in predicate:
-                        if "pull" in predicate:
-                            cmd_groups[cmd]["pulling_states"].append({
-                                "pull": predicate["pull"],
-                                "model": override["model"]
-                            })
-                    elif "charged" in predicate:
-                        if predicate.get("firework", 0):
-                            cmd_groups[cmd]["firework"] = override["model"]
-                        else:
-                            cmd_groups[cmd]["arrow"] = override["model"]
+                if "pulling" in predicate:
+                    if "pull" in predicate:
+                        cmd_groups[cmd]["pulling_states"].append({
+                            "pull": predicate["pull"],
+                            "model": override["model"]
+                        })
+                elif "charged" in predicate:
+                    if predicate.get("firework", 0):
+                        cmd_groups[cmd]["firework"] = override["model"]
+                    else:
+                        cmd_groups[cmd]["arrow"] = override["model"]
 
         # Process each group that has a base model
         for cmd, group in cmd_groups.items():
@@ -926,18 +507,17 @@ def convert_item_model_format(json_data, output_path):
 
                 # Add pulling states
                 pulling_states = sorted(group["pulling_states"], key=lambda x: x["pull"])
-                if pulling_states:
-                    for state in pulling_states:
-                        if state["model"] != group["base"]:  # Skip if it's the same as base model
-                            bow_json["model"]["on_true"]["entries"].append({
-                                "threshold": state["pull"],
-                                "model": {
-                                    "type": "minecraft:model",
-                                    "model": state["model"]
-                                }
-                            })
+                for state in pulling_states:
+                    if state["model"] != group["base"]:  # Skip if it's the same as base model
+                        bow_json["model"]["on_true"]["entries"].append({
+                            "threshold": state["pull"],
+                            "model": {
+                                "type": "minecraft:model",
+                                "model": state["model"]
+                            }
+                        })
 
-                # Save bow JSON using the base model path
+                # Save bow JSON
                 if ":" in group["base"]:
                     namespace, path = group["base"].split(":", 1)
                     file_name = os.path.join(output_path, namespace, path) + ".json"
@@ -971,138 +551,63 @@ def convert_item_model_format(json_data, output_path):
                 with open(file_name, 'w', encoding='utf-8') as f:
                     json.dump(new_json, f, indent=2)
 
-def should_convert_json(json_data):
-    """
-    Check if a JSON file needs conversion
-    
-    Args:
-        json_data (dict): JSON data to check
-        
-    Returns:
-        bool: True if the JSON contains custom model data overrides
-    """
-    if "overrides" not in json_data:
-        return False
-    
-    for override in json_data.get("overrides", []):
-        if "predicate" in override and "custom_model_data" in override["predicate"]:
-            return True
-    
-    return False
-
-def create_file_table(processed_files):
-    """
-    Create a formatted table showing file processing results
-    
-    Args:
-        processed_files (list): List of dictionaries containing file processing information
-            Each dict should have keys:
-            - path: File path
-            - type: File type
-            - status: Processing status
-            
-    Returns:
-        Table: Rich formatted table showing processing results
-    """
-    table = Table(
-        title=get_text("file_table_title"),
-        show_header=True,
-        header_style="bold magenta",
-        border_style="blue",
-        expand=True
-    )
-    
-    # Configure table columns
-    table.add_column(get_text("file_name"), style="cyan", ratio=3)
-    table.add_column(get_text("file_type"), style="green", justify="center", ratio=1)
-    table.add_column(get_text("file_status"), style="yellow", justify="center", ratio=1)
-    
-    # Add file entries to table
-    for file_info in processed_files:
-        status_style = "green" if file_info["status"] == get_text("status_converted") else "blue"
-        table.add_row(
-            file_info["path"],
-            file_info["type"],
-            f"[{status_style}]{file_info['status']}[/{status_style}]"
-        )
-    
-    return table
-
-def process_directory(input_dir, output_dir):
-    """
-    Process directory in Custom Model Data mode
-    
-    Converts all compatible JSON files in the input directory to the new format
-    while preserving the directory structure. Tracks progress and handles errors.
-    
-    Args:
-        input_dir (str): Source directory containing files to convert
-        output_dir (str): Destination directory for converted files
-        
-    Returns:
-        list: List of processed file information dictionaries
-    """
+def process_directory(input_dir, output_dir, mode="cmd"):
+    """Process directory in specified mode"""
     processed_files = []
     
-    # Find all JSON files to process
-    json_files = []
-    for root, _, files in os.walk(input_dir):
-        for file in files:
-            if file.lower().endswith('.json'):
-                json_files.append(os.path.join(root, file))
-    
-    total_files = len(json_files)
-    processed_count = 0
-    
+    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Create appropriate progress bar
-    if is_gui_console(console) and CustomProgress:
-        progress = CustomProgress(console)
-    else:
-        progress = create_standard_progress()
-    
-    with progress as progress_ctx:
-        task = progress_ctx.add_task(get_text("processing_files"), total=total_files)
+    # Copy all files first
+    for root, dirs, files in os.walk(input_dir):
+        relative_path = os.path.relpath(root, input_dir)
+        output_root = os.path.join(output_dir, relative_path)
+        os.makedirs(output_root, exist_ok=True)
         
-        # Copy all files to output directory
-        for root, dirs, files in os.walk(input_dir):
-            relative_path = os.path.relpath(root, input_dir)
-            output_root = os.path.join(output_dir, relative_path)
-            
-            os.makedirs(output_root, exist_ok=True)
-            
-            for file in files:
-                input_file = os.path.join(root, file)
-                output_file = os.path.join(output_root, file)
-                relative_path = os.path.relpath(input_file, input_dir)
-                
-                try:
-                    shutil.copy2(input_file, output_file)
-                    if not file.lower().endswith('.json'):
-                        processed_files.append({
-                            "path": relative_path,
-                            "type": "Other",
-                            "status": get_text("status_copied")
-                        })
-                except Exception as e:
-                    console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
-        
-        # Process JSON files
-        for json_file in json_files:
-            input_file = json_file
+        for file in files:
+            input_file = os.path.join(root, file)
+            output_file = os.path.join(output_root, file)
             relative_path = os.path.relpath(input_file, input_dir)
-            output_file = os.path.join(output_dir, relative_path)
-            
-            if is_gui_console(console):
-                console.print(get_text("current_file", relative_path))
             
             try:
-                with open(input_file, 'r', encoding='utf-8') as f:
+                shutil.copy2(input_file, output_file)
+                if not file.lower().endswith('.json'):
+                    processed_files.append({
+                        "path": relative_path,
+                        "type": "Other",
+                        "status": get_text("status_copied")
+                    })
+            except Exception as e:
+                console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
+
+    # Process JSON files
+    json_files = []
+    if mode == "item_model":
+        models_item_dir = os.path.join(output_dir, "assets", "minecraft", "models", "item")
+        if os.path.exists(models_item_dir):
+            json_files = [os.path.join(models_item_dir, f) for f in os.listdir(models_item_dir)
+                         if f.lower().endswith('.json')]
+    else:
+        for root, _, files in os.walk(input_dir):
+            for file in files:
+                if file.lower().endswith('.json'):
+                    json_files.append(os.path.join(root, file))
+
+    with get_progress_bar() as progress:
+        task = progress.add_task(get_text("processing_files"), total=len(json_files))
+        
+        for json_file in json_files:
+            relative_path = os.path.relpath(json_file, input_dir)
+            
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
                     json_data = json.load(f)
                 
-                if should_convert_json(json_data):
-                    converted_data = convert_json_format(json_data)
+                if "overrides" in json_data and any("custom_model_data" in o.get("predicate", {}) 
+                                                  for o in json_data.get("overrides", [])):
+                    converted_data = convert_json_format(json_data, mode == "item_model")
+                    
+                    output_file = os.path.join(output_dir, relative_path)
                     with open(output_file, 'w', encoding='utf-8') as f:
                         json.dump(converted_data, f, indent=4)
                     
@@ -1117,11 +622,11 @@ def process_directory(input_dir, output_dir):
                         "type": "JSON",
                         "status": get_text("status_copied")
                     })
+                    
             except Exception as e:
                 console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
             
-            processed_count += 1
-            progress_ctx.update(task, completed=processed_count)
+            progress.update(task, advance=1)
     
     return processed_files
 
@@ -1148,7 +653,7 @@ def process_directory_item_model(input_dir, output_dir):
         os.makedirs(output_root, exist_ok=True)
         
         for file in files:
-            if is_gui_console(console):
+            if hasattr(console, 'status_label'):
                 console.print(get_text("current_file", file))
             
             input_file = os.path.join(root, file)
@@ -1175,20 +680,14 @@ def process_directory_item_model(input_dir, output_dir):
                            and f.lower().endswith('.json')]
         
         total_files = len(direct_json_files)
-        processed_count = 0
         
         # Set up progress tracking
-        if is_gui_console(console) and CustomProgress:
-            progress = CustomProgress(console)
-        else:
-            progress = create_standard_progress()
-        
-        with progress as progress_ctx:
-            task = progress_ctx.add_task(get_text("processing_files"), total=total_files)
+        with get_progress_bar() as progress:
+            task = progress.add_task(get_text("processing_files"), total=total_files)
             
             # Process each direct JSON file
             for file in direct_json_files:
-                if is_gui_console(console):
+                if hasattr(console, 'status_label'):
                     console.print(get_text("current_file", file))
                 
                 src_path = os.path.join(models_item_dir, file)
@@ -1207,7 +706,8 @@ def process_directory_item_model(input_dir, output_dir):
                     with open(dst_path, 'r', encoding='utf-8') as f:
                         json_data = json.load(f)
                     
-                    if should_convert_json(json_data):
+                    if "overrides" in json_data and any("custom_model_data" in o.get("predicate", {}) 
+                                                      for o in json_data.get("overrides", [])):
                         convert_item_model_format(json_data, items_dir)
                         os.remove(dst_path)  # Remove the original file after conversion
                         processed_files.append({
@@ -1225,8 +725,7 @@ def process_directory_item_model(input_dir, output_dir):
                 except Exception as e:
                     console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
                 
-                processed_count += 1
-                progress_ctx.update(task, completed=processed_count)
+                progress.update(task, advance=1)
             
             # Only remove models/item if it's empty
             if os.path.exists(models_item_dir) and not os.listdir(models_item_dir):
@@ -1234,10 +733,33 @@ def process_directory_item_model(input_dir, output_dir):
     
     return processed_files
 
+def create_file_table(processed_files):
+    """Create report table"""
+    table = Table(
+        title=get_text("file_table_title"),
+        show_header=True,
+        header_style="bold magenta",
+        border_style="blue",
+        expand=True
+    )
+    
+    table.add_column(get_text("file_name"), style="cyan", ratio=3)
+    table.add_column(get_text("file_type"), style="green", justify="center", ratio=1)
+    table.add_column(get_text("file_status"), style="yellow", justify="center", ratio=1)
+    
+    for file_info in processed_files:
+        status_style = "green" if file_info["status"] == get_text("status_converted") else "blue"
+        table.add_row(
+            file_info["path"],
+            file_info["type"],
+            f"[{status_style}]{file_info['status']}[/{status_style}]"
+        )
+    
+    return table
+
 def adjust_folder_structure(base_dir):
     """
-    Adjust the folder structure by moving only the direct files from models/item to items
-    Subdirectories in models/item will be left untouched
+    Adjust the folder structure by moving files from models/item to items
     
     Args:
         base_dir (str): Base directory to adjust structure in
@@ -1255,14 +777,8 @@ def adjust_folder_structure(base_dir):
             console.print(f"\n[cyan]{get_text('adjusting_structure')}[/cyan]")
             os.makedirs(items_path, exist_ok=True)
             
-            # Set up progress tracking
-            if is_gui_console(console) and CustomProgress:
-                progress = CustomProgress(console)
-            else:
-                progress = create_standard_progress()
-            
-            with progress as progress_ctx:
-                task = progress_ctx.add_task(get_text("moving_files"), total=total_files)
+            with get_progress_bar() as progress:
+                task = progress.add_task(get_text("moving_files"), total=total_files)
                 
                 # Only process files directly in models/item
                 for item in os.listdir(models_item_path):
@@ -1272,7 +788,7 @@ def adjust_folder_structure(base_dir):
                     if os.path.isdir(src_path):
                         continue
                         
-                    if is_gui_console(console):
+                    if hasattr(console, 'status_label'):
                         console.print(get_text("current_file", item))
                     
                     dst_path = os.path.join(items_path, item)
@@ -1284,7 +800,7 @@ def adjust_folder_structure(base_dir):
                     
                     # Move file
                     shutil.move(src_path, dst_path)
-                    progress_ctx.update(task, advance=1)
+                    progress.update(task, advance=1)
             
             # Only remove models/item if it's empty
             if os.path.exists(models_item_path) and not os.listdir(models_item_path):
@@ -1293,48 +809,24 @@ def adjust_folder_structure(base_dir):
             console.print(f"[green]{get_text('moved_models', models_item_path, items_path)}[/green]")
 
 def create_zip(folder_path, zip_path):
-    """
-    Create a ZIP archive from a folder
-    
-    Args:
-        folder_path (str): Path to the folder to compress
-        zip_path (str): Output path for the ZIP file
-    """
-    total_files = count_files(folder_path)
+    """Create ZIP archive"""
+    total_files = sum(len(files) for _, _, files in os.walk(folder_path))
     
     console.print(f"\n[cyan]{get_text('creating_zip')}[/cyan]")
     
-    # Set up progress tracking
-    if is_gui_console(console) and CustomProgress:
-        progress = CustomProgress(console)
-    else:
-        progress = create_standard_progress()
-    
-    with progress as progress_ctx:
-        task = progress_ctx.add_task(get_text("compressing_files"), total=total_files)
+    with get_progress_bar() as progress:
+        task = progress.add_task(get_text("compressing_files"), total=total_files)
         
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, _, files in os.walk(folder_path):
                 for file in files:
                     file_path = os.path.join(root, file)
                     arc_name = os.path.relpath(file_path, folder_path)
-                    
-                    if is_gui_console(console):
-                        console.print(get_text("current_file", arc_name))
-                    
                     zipf.write(file_path, arc_name)
-                    progress_ctx.update(task, advance=1)
+                    progress.update(task, advance=1)
 
 def main(lang="zh"):
-    """
-    Main program entry point
-    
-    Args:
-        lang (str): Language code ('zh' or 'en')
-        
-    Returns:
-        bool: True if conversion successful, False otherwise
-    """
+    """Main program entry point"""
     global CURRENT_LANG
     CURRENT_LANG = lang
     
@@ -1352,7 +844,7 @@ def main(lang="zh"):
                 expand=False
             ))
             return False
-        
+            
         # Check if input directory is empty
         if not any(os.scandir(input_dir)):
             console.print(Panel(
@@ -1374,7 +866,11 @@ def main(lang="zh"):
         
         # Process files
         processed_files = process_directory(input_dir, temp_output_dir)
+        
+        # Adjust folder structure
         adjust_folder_structure(temp_output_dir)
+        
+        # Create output ZIP file
         create_zip(temp_output_dir, zip_filename)
         
         # Show completion message
@@ -1414,6 +910,7 @@ def main(lang="zh"):
         return False
     
     finally:
+        # Clean up temporary directory
         if os.path.exists(temp_output_dir):
             try:
                 shutil.rmtree(temp_output_dir)
