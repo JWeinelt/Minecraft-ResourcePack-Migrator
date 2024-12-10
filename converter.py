@@ -1,3 +1,23 @@
+"""
+Minecraft Resource Pack Converter Module
+
+This module handles the conversion of Minecraft resource pack files between different formats.
+It supports both Custom Model Data and Item Model conversion modes with comprehensive features:
+Features:
+- Bilingual support (English/Chinese)
+- Both GUI and console interfaces
+- Progress tracking and reporting
+- ZIP file handling
+- Directory structure management
+- Detailed processing reports
+- Error handling and recovery
+
+The module can be used both as a standalone command-line tool and as part of a GUI application.
+Author: RiceChen_
+
+Version: 1.2.3
+"""
+
 import json
 import os
 import shutil
