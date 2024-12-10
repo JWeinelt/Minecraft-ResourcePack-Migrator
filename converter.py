@@ -16,7 +16,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 
 Author: RiceChen_
-Version: 1.2.1
+Version: 1.2.2
 """
 
 import json
@@ -658,9 +658,8 @@ def process_directory(input_dir, output_dir):
 def process_directory_item_model(input_dir, output_dir):
     """
     Process directory in Item Model mode
-    
-    Similar to process_directory but handles the special requirements of
-    item model conversion, including directory structure changes.
+    Only processes files directly in the models/item directory,
+    ignoring any files in subdirectories.
     
     Args:
         input_dir (str): Source directory containing files to convert
@@ -671,110 +670,104 @@ def process_directory_item_model(input_dir, output_dir):
     """
     processed_files = []
     
-    # Find JSON files
-    json_files = []
-    for root, _, files in os.walk(input_dir):
-        for file in files:
-            if file.lower().endswith('.json'):
-                json_files.append(os.path.join(root, file))
-    
-    total_files = len(json_files)
-    processed_count = 0
-    
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Create progress bar
-    if is_gui_console(console) and CustomProgress:
-        progress = CustomProgress(console)
-    else:
-        progress = create_standard_progress()
-    
-    with progress as progress_ctx:
-        task = progress_ctx.add_task(get_text("processing_files"), total=total_files)
+    # First copy all files to maintain complete structure
+    for root, dirs, files in os.walk(input_dir):
+        relative_path = os.path.relpath(root, input_dir)
+        output_root = os.path.join(output_dir, relative_path)
         
-        # First copy all files
-        for root, dirs, files in os.walk(input_dir):
-            relative_path = os.path.relpath(root, input_dir)
-            output_root = os.path.join(output_dir, relative_path)
+        os.makedirs(output_root, exist_ok=True)
+        
+        for file in files:
+            if is_gui_console(console):
+                console.print(get_text("current_file", file))
             
-            os.makedirs(output_root, exist_ok=True)
+            input_file = os.path.join(root, file)
+            output_file = os.path.join(output_root, file)
+            shutil.copy2(input_file, output_file)
             
-            for file in files:
+            if not file.lower().endswith('.json'):
+                processed_files.append({
+                    "path": os.path.relpath(input_file, input_dir),
+                    "type": "Other",
+                    "status": get_text("status_copied")
+                })
+    
+    # Process only direct JSON files in models/item directory
+    models_item_dir = os.path.join(output_dir, "assets", "minecraft", "models", "item")
+    items_dir = os.path.join(output_dir, "assets", "minecraft", "items")
+    
+    if os.path.exists(models_item_dir):
+        os.makedirs(items_dir, exist_ok=True)
+        
+        # Get only direct JSON files (not in subdirectories)
+        direct_json_files = [f for f in os.listdir(models_item_dir) 
+                           if os.path.isfile(os.path.join(models_item_dir, f)) 
+                           and f.lower().endswith('.json')]
+        
+        total_files = len(direct_json_files)
+        processed_count = 0
+        
+        # Set up progress tracking
+        if is_gui_console(console) and CustomProgress:
+            progress = CustomProgress(console)
+        else:
+            progress = create_standard_progress()
+        
+        with progress as progress_ctx:
+            task = progress_ctx.add_task(get_text("processing_files"), total=total_files)
+            
+            # Process each direct JSON file
+            for file in direct_json_files:
                 if is_gui_console(console):
                     console.print(get_text("current_file", file))
                 
-                input_file = os.path.join(root, file)
-                output_file = os.path.join(output_root, file)
-                shutil.copy2(input_file, output_file)
-                
-                if not file.lower().endswith('.json'):
-                    processed_files.append({
-                        "path": os.path.relpath(input_file, input_dir),
-                        "type": "Other",
-                        "status": get_text("status_copied")
-                    })
-        
-        # Process models/item directory JSON files
-        models_item_dir = os.path.join(output_dir, "assets", "minecraft", "models", "item")
-        items_dir = os.path.join(output_dir, "assets", "minecraft", "items")
-        
-        if os.path.exists(models_item_dir):
-            os.makedirs(items_dir, exist_ok=True)
-            processed_item_jsons = []
-            
-            # First move all JSON files to new location
-            for root, _, files in os.walk(models_item_dir):
-                for file in files:
-                    if file.lower().endswith('.json'):
-                        src_path = os.path.join(root, file)
-                        dst_path = os.path.join(items_dir, file)
-                        
-                        # Create backup if file exists
-                        if os.path.exists(dst_path):
-                            backup_path = f"{dst_path}.bak"
-                            shutil.move(dst_path, backup_path)
-                        
-                        shutil.move(src_path, dst_path)
-                        processed_item_jsons.append(dst_path)
-            
-            # Then process moved JSON files
-            for json_path in processed_item_jsons:
-                if is_gui_console(console):
-                    console.print(get_text("current_file", os.path.basename(json_path)))
+                src_path = os.path.join(models_item_dir, file)
+                dst_path = os.path.join(items_dir, file)
                 
                 try:
-                    with open(json_path, 'r', encoding='utf-8') as f:
+                    # Create backup if file exists
+                    if os.path.exists(dst_path):
+                        backup_path = f"{dst_path}.bak"
+                        shutil.move(dst_path, backup_path)
+                    
+                    # Move file to new location
+                    shutil.move(src_path, dst_path)
+                    
+                    # Process the moved file
+                    with open(dst_path, 'r', encoding='utf-8') as f:
                         json_data = json.load(f)
                     
-                    # Convert if needed
                     if should_convert_json(json_data):
                         convert_item_model_format(json_data, items_dir)
-                        os.remove(json_path)
+                        os.remove(dst_path)  # Remove the original file after conversion
                         processed_files.append({
-                            "path": os.path.relpath(json_path, output_dir),
+                            "path": os.path.relpath(dst_path, output_dir),
                             "type": "JSON",
                             "status": get_text("status_converted")
                         })
                     else:
                         processed_files.append({
-                            "path": os.path.relpath(json_path, output_dir),
+                            "path": os.path.relpath(dst_path, output_dir),
                             "type": "JSON",
                             "status": get_text("status_copied")
                         })
+                        
                 except Exception as e:
                     console.print(f"[red]{get_text('error_occurred', str(e))}[/red]")
                 
                 processed_count += 1
                 progress_ctx.update(task, completed=processed_count)
             
-            # Remove empty models/item directory
-            shutil.rmtree(models_item_dir)
+            # Only remove models/item if it's empty
+            if os.path.exists(models_item_dir) and not os.listdir(models_item_dir):
+                shutil.rmtree(models_item_dir)
     
     return processed_files
 
 def adjust_folder_structure(base_dir):
     """
-    Adjust the folder structure by moving files from models/item to items
+    Adjust the folder structure by moving only the direct files from models/item to items
+    Subdirectories in models/item will be left untouched
     
     Args:
         base_dir (str): Base directory to adjust structure in
@@ -784,7 +777,9 @@ def adjust_folder_structure(base_dir):
     items_path = os.path.join(assets_path, "items")
     
     if os.path.exists(models_item_path):
-        total_files = len(os.listdir(models_item_path))
+        # Only count direct files in models/item directory
+        total_files = len([f for f in os.listdir(models_item_path) 
+                         if os.path.isfile(os.path.join(models_item_path, f))])
         
         if total_files > 0:
             console.print(f"\n[cyan]{get_text('adjusting_structure')}[/cyan]")
@@ -799,21 +794,32 @@ def adjust_folder_structure(base_dir):
             with progress as progress_ctx:
                 task = progress_ctx.add_task(get_text("moving_files"), total=total_files)
                 
+                # Only process files directly in models/item
                 for item in os.listdir(models_item_path):
+                    src_path = os.path.join(models_item_path, item)
+                    
+                    # Skip if it's a directory
+                    if os.path.isdir(src_path):
+                        continue
+                        
                     if is_gui_console(console):
                         console.print(get_text("current_file", item))
                     
-                    src_path = os.path.join(models_item_path, item)
                     dst_path = os.path.join(items_path, item)
                     
+                    # Handle existing file
                     if os.path.exists(dst_path):
                         backup_path = f"{dst_path}.bak"
                         shutil.move(dst_path, backup_path)
                     
+                    # Move file
                     shutil.move(src_path, dst_path)
                     progress_ctx.update(task, advance=1)
             
-            shutil.rmtree(models_item_path)
+            # Only remove models/item if it's empty
+            if os.path.exists(models_item_path) and not os.listdir(models_item_path):
+                shutil.rmtree(models_item_path)
+            
             console.print(f"[green]{get_text('moved_models', models_item_path, items_path)}[/green]")
 
 def create_zip(folder_path, zip_path):
