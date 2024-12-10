@@ -195,5 +195,3 @@ Issues and Pull Requests are welcome. Main areas for contribution:
 ## License
 
 GNU General Public License v3.0
-
-<!-- README-中文.md -->
