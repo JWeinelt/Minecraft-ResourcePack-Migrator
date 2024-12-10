@@ -16,7 +16,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 
 Author: RiceChen_
-Version: 1.1
+Version: 1.2
 """
 
 import json
@@ -217,12 +217,22 @@ def convert_json_format(input_json):
     base_texture = input_json.get("textures", {}).get("layer0", "")
     
     if base_texture:
+        # Handle minecraft:item paths
         if base_texture.startswith("minecraft:item/"):
             base_texture = f"minecraft:item/{base_texture.split('minecraft:item/')[-1]}"
         elif base_texture.startswith("item/"):
             base_texture = f"item/{base_texture.split('item/')[-1]}"
-        elif not any(base_texture.startswith(prefix) for prefix in ["item/", "minecraft:item/"]):
-            base_texture = f"item/{base_texture}"
+        # Handle minecraft:block paths
+        elif base_texture.startswith("minecraft:block/"):
+            base_texture = f"minecraft:block/{base_texture.split('minecraft:block/')[-1]}"
+        elif base_texture.startswith("block/"):
+            base_texture = f"block/{base_texture.split('block/')[-1]}"
+        # Add default prefix if neither item nor block prefix exists
+        elif not any(base_texture.startswith(prefix) for prefix in [
+            "item/", "minecraft:item/", 
+            "block/", "minecraft:block/"
+        ]):
+            base_texture = f"item/{base_texture}"  # Default to item/ prefix
     
     # Create new format structure
     new_format = {

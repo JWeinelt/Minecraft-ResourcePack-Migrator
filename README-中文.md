@@ -12,7 +12,7 @@ README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
   1. Custom Model Data 轉換：將舊版 CustomModelData 格式轉換為新格式
   2. Item Model 轉換：根據 CustomModelData 的路徑轉換為獨立的模型檔案
 - 自動調整資料夾結構（`assets/minecraft/models/item/*` → `assets/minecraft/items/*`）
-- 智慧處理 `minecraft:item/` 和 `item/` 的路徑前綴
+- 智慧處理 `minecraft:item/` 、 ` minecraft:block/ ` 和 `item/` 的路徑前綴
 - 批次處理整個資源包
 - 即時顯示轉換進度
 - 自動打包為可直接使用的資源包

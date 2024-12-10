@@ -12,7 +12,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
   1. Custom Model Data Conversion: Converts old CustomModelData format to new format
   2. Item Model Conversion: Converts to individual model files based on CustomModelData paths
 - Automatically adjusts folder structure (`assets/minecraft/models/item/*` → `assets/minecraft/items/*`)
-- Intelligently handles `minecraft:item/` and `item/` path prefixes
+- Intelligently handles `minecraft:item/` , ` minecraft:block/ ` and `item/` path prefixes
 - Batch processes entire resource packs
 - Real-time conversion progress display
 - Automatically packages into a ready-to-use resource pack
