@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: "[enhancement]"
+title: "[enhancement] "
 labels: enhancement
 assignees: RICE0707
 
