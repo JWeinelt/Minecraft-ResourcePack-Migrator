@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.2.3
+Version: 1.2.4
 """
 
 import json
@@ -144,9 +144,78 @@ def get_progress_bar():
         expand=True
     )
 
-def convert_json_format(input_json, is_item_model=False):
+def is_potion_model(json_data):
     """
-    Convert JSON format for Custom Model Data mode with special handling for bows and crossbows
+    Check if the JSON data represents a potion model
+    
+    Args:
+        json_data (dict): Input JSON data
+        
+    Returns:
+        bool: True if it's a potion model, False otherwise
+    """
+    # Check texture layers
+    textures = json_data.get("textures", {})
+    
+    return (
+        # check parent and layers
+        json_data.get("parent") == "item/generated" and 
+        textures.get("layer0") == "item/potion_overlay" and 
+        textures.get("layer1") == "item/potion"
+    ) or (
+        textures.get("layer0") == "item/splash_potion_overlay" and 
+        textures.get("layer1") == "item/splash_potion"
+    ) or (
+        textures.get("layer0") == "item/lingering_potion_overlay" and 
+        textures.get("layer1") == "item/lingering_potion"
+    )
+
+def is_chest_model(json_data, file_path=""):
+    """
+    Check if the JSON data represents a chest or trapped chest model
+    
+    Args:
+        json_data (dict): Input JSON data
+        file_path (str): Path to the JSON file
+        
+    Returns:
+        tuple: (bool, str) - (is chest model, chest type)
+    """
+    # Check if parent is builtin/entity
+    if json_data.get("parent") != "builtin/entity":
+        return False, None
+    
+    # Check if it has chest-specific display properties
+    display = json_data.get("display", {})
+    required_display_sections = {
+        "gui", "ground", "head", "fixed", 
+        "thirdperson_righthand", "firstperson_righthand"
+    }
+    
+    # Verify all required display sections are present
+    if not all(section in display for section in required_display_sections):
+        return False, None
+    
+    # Check if GUI display section matches chest specifications
+    gui_display = display.get("gui", {})
+    if not gui_display:
+        return False, None
+    
+    # Verify typical chest rotation values
+    rotation = gui_display.get("rotation", [])
+    if not (rotation and rotation[0] == 30 and rotation[1] == 45):
+        return False, None
+
+    # Check file path for trapped chest
+    normalized_path = os.path.normpath(file_path).replace("\\", "/")
+    if "assets/minecraft/models/item/trapped_chest.json" in normalized_path:
+        return True, "trapped_chest"
+    
+    return True, "chest"
+
+def convert_json_format(input_json, is_item_model=False, file_path=""):
+    """
+    Convert JSON format for Custom Model Data mode with special handling for bows, crossbows and chests
     
     Args:
         input_json (dict): Original JSON data to convert
@@ -155,30 +224,75 @@ def convert_json_format(input_json, is_item_model=False):
     Returns:
         dict: Converted JSON in new format
     """
-    # Extract and normalize base texture path
+    # Extract and normalize base texture path or parent path
     base_texture = input_json.get("textures", {}).get("layer0", "")
-    
-    if base_texture:
-        # Special handling for crossbow_standby
-        if base_texture == "item/crossbow_standby":
-            base_texture = "item/crossbow"
-        elif base_texture == "minecraft:item/crossbow_standby":
-            base_texture = "minecraft:item/crossbow"
-        
-        # Normal path normalization
-        if base_texture.startswith("minecraft:item/"):
-            base_texture = base_texture
-        elif base_texture.startswith("item/"):
-            base_texture = f"minecraft:{base_texture}"
-        elif not base_texture.startswith("minecraft:"):
-            base_texture = f"minecraft:item/{base_texture}"
+    parent_path = input_json.get("parent", "")
+    base_path = base_texture or parent_path
+
+    # Special handling for potions
+    is_potion = is_potion_model(input_json)
+    if is_potion:
+        textures = input_json.get("textures", {})
+        if textures.get("layer0") == "item/splash_potion_overlay":
+            base_path = "minecraft:item/splash_potion"
+        elif textures.get("layer0") == "item/lingering_potion_overlay":
+            base_path = "minecraft:item/lingering_potion"
+        else:
+            base_path = "minecraft:item/potion"
+
+    # Special handling for chests
+    is_chest, chest_type = is_chest_model(input_json, file_path)
+    if is_chest:
+        base_path = f"item/{chest_type}"
+    else:
+        # Normal path normalization for non-chest items
+        if base_texture and not is_potion:
+            # Special handling for crossbow_standby
+            if base_path == "item/crossbow_standby":
+                base_path = "item/crossbow"
+            elif base_path == "minecraft:item/crossbow_standby":
+                base_path = "minecraft:item/crossbow"
+            
+            # Normal path normalization for textures
+            if not parent_path:  # Only normalize if it's a texture path
+                if base_path.startswith("minecraft:item/"):
+                    base_path = base_path
+                elif base_path.startswith("item/"):
+                    base_path = f"minecraft:{base_path}"
+                elif not base_path.startswith("minecraft:"):
+                    base_path = f"minecraft:item/{base_path}"
+
+    # Create fallback structure based on type
+    if is_chest:
+        fallback = {
+            "type": "minecraft:special",
+            "base": base_path,
+            "model": {
+                "type": "minecraft:chest",
+                "texture": "minecraft:normal"
+            }
+        }
+    elif is_potion:
+        fallback = {
+            "type": "model",
+            "model": base_path,
+            "tints": [{
+                "type": "minecraft:potion",
+                "default": -13083194
+            }]
+        }
+    else:
+        fallback = {
+            "type": "model",
+            "model": base_path
+        }
 
     # Create basic structure
     new_format = {
         "model": {
             "type": "range_dispatch" if not is_item_model else "model",
             "property": "custom_model_data" if not is_item_model else None,
-            "fallback": {"type": "model", "model": base_texture},
+            "fallback": fallback,
             "entries": [] if not is_item_model else None
         }
     }
@@ -191,8 +305,8 @@ def convert_json_format(input_json, is_item_model=False):
         return new_format
 
     # Detect model type and group overrides
-    is_bow = "bow" in base_texture and "crossbow" not in base_texture
-    is_crossbow = "crossbow" in base_texture
+    is_bow = not is_chest and "bow" in base_path and "crossbow" not in base_path
+    is_crossbow = not is_chest and "crossbow" in base_path
 
     # Handle different model types
     if is_crossbow:
@@ -216,7 +330,6 @@ def convert_json_format(input_json, is_item_model=False):
                     "firework": None
                 }
             
-            # Categorize crossbow override
             if "pulling" in predicate:
                 pull_value = predicate.get("pull", 0.0)
                 cmd_groups[cmd]["pulling_states"].append({
@@ -231,10 +344,9 @@ def convert_json_format(input_json, is_item_model=False):
             else:
                 cmd_groups[cmd]["base"] = override["model"]
         
-        # Create crossbow entries
         for cmd, group in cmd_groups.items():
             pulling_states = sorted(group["pulling_states"], key=lambda x: x.get("pull", 0))
-            base_model = group["base"] or pulling_states[0]["model"] if pulling_states else base_texture
+            base_model = group["base"] or pulling_states[0]["model"] if pulling_states else base_path
             
             entry = {
                 "threshold": int(cmd),
@@ -262,7 +374,6 @@ def convert_json_format(input_json, is_item_model=False):
                 }
             }
 
-            # Add ammunition cases
             cases = entry["model"]["on_false"]["cases"]
             if group["arrow"]:
                 cases.append({
@@ -281,7 +392,6 @@ def convert_json_format(input_json, is_item_model=False):
                     "when": "rocket"
                 })
 
-            # Add pulling states
             if pulling_states:
                 entries = entry["model"]["on_true"]["entries"]
                 for state in pulling_states[1:]:
@@ -298,7 +408,6 @@ def convert_json_format(input_json, is_item_model=False):
     elif is_bow:
         # Group overrides by custom_model_data for bow
         cmd_groups = {}
-        
         for override in input_json["overrides"]:
             if "predicate" not in override or "model" not in override:
                 continue
@@ -324,66 +433,100 @@ def convert_json_format(input_json, is_item_model=False):
             else:
                 cmd_groups[cmd]["base"] = override["model"]
         
-        # Create bow entries
         for cmd, group in cmd_groups.items():
             pulling_states = sorted(group["pulling_states"], key=lambda x: x.get("pull", 0))
-            base_model = group["base"] or pulling_states[0]["model"] if pulling_states else base_texture
+            base_model = group["base"] or pulling_states[0]["model"] if pulling_states else base_path
             
-            if base_model:
-                entry = {
-                    "threshold": int(cmd),
-                    "model": {
-                        "type": "minecraft:condition",
-                        "property": "minecraft:using_item",
-                        "on_false": {
+            entry = {
+                "threshold": int(cmd),
+                "model": {
+                    "type": "minecraft:condition",
+                    "property": "minecraft:using_item",
+                    "on_false": {
+                        "type": "minecraft:model",
+                        "model": base_model
+                    },
+                    "on_true": {
+                        "type": "minecraft:range_dispatch",
+                        "property": "minecraft:use_duration",
+                        "scale": 0.05,
+                        "fallback": {
                             "type": "minecraft:model",
                             "model": base_model
                         },
-                        "on_true": {
-                            "type": "minecraft:range_dispatch",
-                            "property": "minecraft:use_duration",
-                            "scale": 0.05,
-                            "fallback": {
-                                "type": "minecraft:model",
-                                "model": base_model
-                            },
-                            "entries": []
-                        }
+                        "entries": []
                     }
                 }
-                
-                # Add pulling states
-                if pulling_states:
-                    for state in pulling_states:
-                        if state["model"] != base_model:  # Skip if it's the same as base model
-                            entry["model"]["on_true"]["entries"].append({
-                                "threshold": state.get("pull", 0.0),
-                                "model": {
-                                    "type": "minecraft:model",
-                                    "model": state["model"]
-                                }
-                            })
-                
-                new_format["model"]["entries"].append(entry)
+            }
+
+            if pulling_states:
+                for state in pulling_states:
+                    if state["model"] != base_model:
+                        entry["model"]["on_true"]["entries"].append({
+                            "threshold": state.get("pull", 0.0),
+                            "model": {
+                                "type": "minecraft:model",
+                                "model": state["model"]
+                            }
+                        })
+
+            new_format["model"]["entries"].append(entry)
 
     else:
-        # Handle normal items
+        # Handle normal items and chests
         for override in input_json["overrides"]:
             if "predicate" in override and "custom_model_data" in override["predicate"]:
-                entry = {
-                    "threshold": int(override["predicate"]["custom_model_data"]),
-                    "model": {
-                        "type": "model",
-                        "model": override["model"]
+                model_path = override["model"]
+                
+                if is_chest:
+                    entry = {
+                        "threshold": int(override["predicate"]["custom_model_data"]),
+                        "model": {
+                            "type": "minecraft:select",
+                            "property": "minecraft:local_time",
+                            "pattern": "MM-dd",
+                            "cases": [
+                                {
+                                    "model": {
+                                        "type": "minecraft:special",
+                                        "base": model_path,
+                                        "model": {
+                                            "type": "minecraft:chest",
+                                            "texture": "minecraft:christmas"
+                                        }
+                                    },
+                                    "when": [
+                                        "12-24",
+                                        "12-25",
+                                        "12-26"
+                                    ]
+                                }
+                            ],
+                            "fallback": {
+                                "type": "minecraft:special",
+                                "base": model_path,
+                                "model": {
+                                    "type": "minecraft:chest",
+                                    "texture": "minecraft:normal"
+                                }
+                            }
+                        }
                     }
-                }
+                else:
+                    entry = {
+                        "threshold": int(override["predicate"]["custom_model_data"]),
+                        "model": {
+                            "type": "model",
+                            "model": model_path
+                        }
+                    }
                 new_format["model"]["entries"].append(entry)
 
     return new_format
 
 def convert_item_model_format(json_data, output_path):
     """
-    Convert JSON format for Item Model mode with special handling for bows and crossbows
+    Convert JSON format for Item Model mode with special handling for bows, crossbows and chests
     
     Args:
         json_data (dict): Original JSON data containing model overrides
@@ -392,21 +535,21 @@ def convert_item_model_format(json_data, output_path):
     if "overrides" not in json_data or not json_data["overrides"]:
         return None
 
-    # Group overrides by custom_model_data
-    cmd_groups = {}
+    # Check if it's a chest model
+    is_chest = is_chest_model(json_data)
     base_texture = json_data.get("textures", {}).get("layer0", "")
-    is_bow = "bow" in base_texture and "crossbow" not in base_texture
-    is_crossbow = "crossbow" in base_texture
+    is_bow = not is_chest and "bow" in base_texture and "crossbow" not in base_texture
+    is_crossbow = not is_chest and "crossbow" in base_texture
 
     if is_bow or is_crossbow:
-        # First find the base model path for each CMD
+        # Process bow/crossbow 
+        cmd_groups = {}
         for override in json_data["overrides"]:
             if "predicate" in override and "custom_model_data" in override["predicate"]:
                 cmd = override["predicate"]["custom_model_data"]
                 model_path = override["model"]
                 predicate = override["predicate"]
 
-                # Initialize group if not exists
                 if cmd not in cmd_groups:
                     cmd_groups[cmd] = {
                         "base": model_path if "pulling" not in predicate and "charged" not in predicate else None,
@@ -415,7 +558,6 @@ def convert_item_model_format(json_data, output_path):
                         "firework": None
                     }
 
-                # Group other states for this CMD
                 if "pulling" in predicate:
                     if "pull" in predicate:
                         cmd_groups[cmd]["pulling_states"].append({
@@ -428,14 +570,23 @@ def convert_item_model_format(json_data, output_path):
                     else:
                         cmd_groups[cmd]["arrow"] = override["model"]
 
-        # Process each group that has a base model
         for cmd, group in cmd_groups.items():
             if not group["base"]:
                 continue
 
+            # Create the file structure based on the model path
+            model_path = group["base"]
+            if ":" in model_path:
+                namespace, path = model_path.split(":", 1)
+                file_name = os.path.join(output_path, namespace, path) + ".json"
+            else:
+                file_name = os.path.join(output_path, model_path + ".json")
+
+            os.makedirs(os.path.dirname(file_name), exist_ok=True)
+
+            # Create appropriate JSON structure
             if is_crossbow:
-                # Create crossbow JSON structure
-                crossbow_json = {
+                new_json = {
                     "model": {
                         "type": "minecraft:condition",
                         "property": "minecraft:using_item",
@@ -460,8 +611,7 @@ def convert_item_model_format(json_data, output_path):
                     }
                 }
 
-                # Add ammunition cases
-                cases = crossbow_json["model"]["on_false"]["cases"]
+                cases = new_json["model"]["on_false"]["cases"]
                 if group["arrow"]:
                     cases.append({
                         "model": {
@@ -479,11 +629,10 @@ def convert_item_model_format(json_data, output_path):
                         "when": "rocket"
                     })
 
-                # Add pulling states
                 pulling_states = sorted(group["pulling_states"], key=lambda x: x["pull"])
-                if len(pulling_states) > 1:  # Skip first state as it's used in fallback
+                if len(pulling_states) > 1:
                     for state in pulling_states[1:]:
-                        crossbow_json["model"]["on_true"]["entries"].append({
+                        new_json["model"]["on_true"]["entries"].append({
                             "threshold": state["pull"],
                             "model": {
                                 "type": "minecraft:model",
@@ -491,20 +640,8 @@ def convert_item_model_format(json_data, output_path):
                             }
                         })
 
-                # Save crossbow JSON
-                if ":" in group["base"]:
-                    namespace, path = group["base"].split(":", 1)
-                    file_name = os.path.join(output_path, namespace, path) + ".json"
-                else:
-                    file_name = os.path.join(output_path, group["base"] + ".json")
-                
-                os.makedirs(os.path.dirname(file_name), exist_ok=True)
-                with open(file_name, 'w', encoding='utf-8') as f:
-                    json.dump(crossbow_json, f, indent=2)
-
             else:  # bow
-                # Create bow JSON structure
-                bow_json = {
+                new_json = {
                     "model": {
                         "type": "minecraft:condition",
                         "property": "minecraft:using_item",
@@ -525,11 +662,10 @@ def convert_item_model_format(json_data, output_path):
                     }
                 }
 
-                # Add pulling states
                 pulling_states = sorted(group["pulling_states"], key=lambda x: x["pull"])
                 for state in pulling_states:
-                    if state["model"] != group["base"]:  # Skip if it's the same as base model
-                        bow_json["model"]["on_true"]["entries"].append({
+                    if state["model"] != group["base"]:
+                        new_json["model"]["on_true"]["entries"].append({
                             "threshold": state["pull"],
                             "model": {
                                 "type": "minecraft:model",
@@ -537,19 +673,11 @@ def convert_item_model_format(json_data, output_path):
                             }
                         })
 
-                # Save bow JSON
-                if ":" in group["base"]:
-                    namespace, path = group["base"].split(":", 1)
-                    file_name = os.path.join(output_path, namespace, path) + ".json"
-                else:
-                    file_name = os.path.join(output_path, group["base"] + ".json")
-                
-                os.makedirs(os.path.dirname(file_name), exist_ok=True)
-                with open(file_name, 'w', encoding='utf-8') as f:
-                    json.dump(bow_json, f, indent=2)
+            with open(file_name, 'w', encoding='utf-8') as f:
+                json.dump(new_json, f, indent=2)
 
     else:
-        # Handle normal items
+        # Handle normal items and chests
         for override in json_data["overrides"]:
             if "predicate" in override and "custom_model_data" in override["predicate"]:
                 model_path = override["model"]
@@ -561,12 +689,46 @@ def convert_item_model_format(json_data, output_path):
                 
                 os.makedirs(os.path.dirname(file_name), exist_ok=True)
                 
-                new_json = {
-                    "model": {
-                        "type": "model",
-                        "model": model_path
+                if is_chest:
+                    new_json = {
+                        "model": {
+                            "type": "minecraft:select",
+                            "property": "minecraft:local_time",
+                            "pattern": "MM-dd",
+                            "cases": [
+                                {
+                                    "model": {
+                                        "type": "minecraft:special",
+                                        "base": model_path,
+                                        "model": {
+                                            "type": "minecraft:chest",
+                                            "texture": "minecraft:christmas"
+                                        }
+                                    },
+                                    "when": [
+                                        "12-24",
+                                        "12-25",
+                                        "12-26"
+                                    ]
+                                }
+                            ],
+                            "fallback": {
+                                "type": "minecraft:special",
+                                "base": model_path,
+                                "model": {
+                                    "type": "minecraft:chest",
+                                    "texture": "minecraft:normal"
+                                }
+                            }
+                        }
                     }
-                }
+                else:
+                    new_json = {
+                        "model": {
+                            "type": "model",
+                            "model": model_path
+                        }
+                    }
                 
                 with open(file_name, 'w', encoding='utf-8') as f:
                     json.dump(new_json, f, indent=2)
@@ -622,11 +784,13 @@ def process_directory(input_dir, output_dir, mode="cmd"):
             try:
                 with open(json_file, 'r', encoding='utf-8') as f:
                     json_data = json.load(f)
-                
+
+                # In process_directory function
                 if "overrides" in json_data and any("custom_model_data" in o.get("predicate", {}) 
-                                                  for o in json_data.get("overrides", [])):
-                    converted_data = convert_json_format(json_data, mode == "item_model")
-                    
+                                                for o in json_data.get("overrides", [])):
+                    # Pass the file path to convert_json_format
+                    converted_data = convert_json_format(json_data, mode == "item_model", json_file)
+                                    
                     output_file = os.path.join(output_dir, relative_path)
                     with open(output_file, 'w', encoding='utf-8') as f:
                         json.dump(converted_data, f, indent=4)
