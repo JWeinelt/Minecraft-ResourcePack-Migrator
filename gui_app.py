@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.2.5
+Version: 1.3
 """
 
 import sys
@@ -55,6 +55,10 @@ TRANSLATIONS = {
     "mode_item": {
         "zh": "Item Model 轉換",
         "en": "Item Model Conversion"
+    },
+    "mode_damage": {
+        "zh": "Damage 轉換",
+        "en": "Damage Conversion"
     },
     "file_list": {
         "zh": "檔案列表",
@@ -338,12 +342,7 @@ class ResourcePackConverter(tk.Tk):
         self.setup_console()
 
     def setup_directories(self):
-        """
-        Set up necessary program directories with appropriate permissions
-        
-        Creates program directories and sets appropriate access permissions.
-        Handles any permission-related errors during setup.
-        """
+        """Set up necessary program directories with appropriate permissions"""
         try:
             # Create main program directory
             if not os.path.exists(self.program_dir):
@@ -378,12 +377,7 @@ class ResourcePackConverter(tk.Tk):
             sys.exit(1)
 
     def setup_gui(self):
-        """
-        Set up the main GUI components
-        
-        Creates and configures all GUI elements including frames, buttons,
-        and other widgets.
-        """
+        """Set up the main GUI components"""
         self.main_frame = ttk.Frame(self)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -397,11 +391,7 @@ class ResourcePackConverter(tk.Tk):
         self.create_status()
 
     def create_title(self):
-        """
-        Create and configure the application title section
-        
-        Creates a frame with the application title and author information
-        """
+        """Create and configure the application title section"""
         title_frame = ttk.Frame(self.main_frame)
         title_frame.pack(pady=10)
         
@@ -421,71 +411,8 @@ class ResourcePackConverter(tk.Tk):
         )
         self.author_label.pack()
 
-    def create_conversion_mode(self):
-        """
-        Create the conversion mode selection section
-        
-        Creates radio buttons for selecting between Custom Model Data
-        and Item Model conversion modes
-        """
-        self.mode_frame = ttk.LabelFrame(
-            self.main_frame,
-            text=get_text("conversion_mode", self.current_lang.get())
-        )
-        self.mode_frame.pack(fill=tk.X, padx=5, pady=5)
-        
-        ttk.Radiobutton(
-            self.mode_frame,
-            text=get_text("mode_cmd", self.current_lang.get()),
-            variable=self.conversion_mode,
-            value="cmd"
-        ).pack(side=tk.LEFT, padx=20, pady=5)
-        
-        ttk.Radiobutton(
-            self.mode_frame,
-            text=get_text("mode_item", self.current_lang.get()),
-            value="item",
-            variable=self.conversion_mode
-        ).pack(side=tk.LEFT, padx=20, pady=5)
-
-    def create_output_selection(self):
-        """
-        Create the output directory selection section
-        
-        Creates a frame showing the current output path and a button
-        to change the output location. Includes a label displaying the
-        current path and a button to modify it.
-        """
-        self.output_frame = ttk.LabelFrame(
-            self.main_frame,
-            text=get_text("output_folder", self.current_lang.get())
-        )
-        self.output_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        # Display current output path with word wrap
-        self.output_path_var = tk.StringVar(value=self.output_dir)
-        path_label = ttk.Label(
-            self.output_frame,
-            textvariable=self.output_path_var,
-            wraplength=600
-        )
-        path_label.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
-
-        # Change location button
-        self.change_output_btn = ttk.Button(
-            self.output_frame,
-            text=get_text("change_output_folder", self.current_lang.get()),
-            command=self.change_output_location
-        )
-        self.change_output_btn.pack(side=tk.RIGHT, padx=5, pady=5)
-
     def create_language_selection(self):
-        """
-        Create the language selection section
-        
-        Creates a frame with radio buttons for language selection (Chinese/English).
-        Changes take effect immediately upon selection.
-        """
+        """Create the language selection section"""
         self.lang_frame = ttk.LabelFrame(
             self.main_frame,
             text=get_text("language_selection", self.current_lang.get())
@@ -508,24 +435,62 @@ class ResourcePackConverter(tk.Tk):
             value="en"
         ).pack(side=tk.LEFT, padx=20, pady=5)
 
-    def create_file_list(self):
-        """
-        Create the file list display section
+    def create_conversion_mode(self):
+        """Create the conversion mode selection section"""
+        self.mode_frame = ttk.LabelFrame(
+            self.main_frame,
+            text=get_text("conversion_mode", self.current_lang.get())
+        )
+        self.mode_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        Creates a scrollable listbox showing all JSON files that will be
-        processed during conversion. Includes a scrollbar for navigation.
-        """
+        modes = [
+            ("cmd", "mode_cmd"),
+            ("item", "mode_item"),
+            ("damage", "mode_damage")
+        ]
+        
+        for mode, text_key in modes:
+            ttk.Radiobutton(
+                self.mode_frame,
+                text=get_text(text_key, self.current_lang.get()),
+                variable=self.conversion_mode,
+                value=mode
+            ).pack(side=tk.LEFT, padx=20, pady=5)
+
+    def create_output_selection(self):
+        """Create the output directory selection section"""
+        self.output_frame = ttk.LabelFrame(
+            self.main_frame,
+            text=get_text("output_folder", self.current_lang.get())
+        )
+        self.output_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        self.output_path_var = tk.StringVar(value=self.output_dir)
+        path_label = ttk.Label(
+            self.output_frame,
+            textvariable=self.output_path_var,
+            wraplength=600
+        )
+        path_label.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+
+        self.change_output_btn = ttk.Button(
+            self.output_frame,
+            text=get_text("change_output_folder", self.current_lang.get()),
+            command=self.change_output_location
+        )
+        self.change_output_btn.pack(side=tk.RIGHT, padx=5, pady=5)
+
+    def create_file_list(self):
+        """Create the file list display section"""
         self.list_frame = ttk.LabelFrame(
             self.main_frame,
             text=get_text("file_list", self.current_lang.get())
         )
         self.list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Create and configure scrollbar
         scrollbar = ttk.Scrollbar(self.list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Create and configure listbox
         self.file_list = tk.Listbox(
             self.list_frame,
             yscrollcommand=scrollbar.set
@@ -534,13 +499,7 @@ class ResourcePackConverter(tk.Tk):
         scrollbar.config(command=self.file_list.yview)
 
     def create_buttons(self):
-        """
-        Create the control buttons section
-        
-        Creates two groups of buttons:
-        1. Left side: folder selection, ZIP selection, conversion start, and clear
-        2. Right side: output folder access
-        """
+        """Create the control buttons section"""
         btn_frame = ttk.Frame(self.main_frame)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         
@@ -548,7 +507,6 @@ class ResourcePackConverter(tk.Tk):
         left_frame = ttk.Frame(btn_frame)
         left_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        # Define and create main action buttons
         buttons = [
             ("folder_btn", "choose_folder", self.choose_folder),
             ("zip_btn", "choose_zip", self.choose_zip),
@@ -556,7 +514,6 @@ class ResourcePackConverter(tk.Tk):
             ("clear_btn", "clear_files", self.clear_files)
         ]
         
-        # Create each button with proper text and command
         for attr, text_key, command in buttons:
             btn = ttk.Button(
                 left_frame,
@@ -566,7 +523,6 @@ class ResourcePackConverter(tk.Tk):
             btn.pack(side=tk.LEFT, padx=5)
             setattr(self, attr, btn)
         
-        # Create output folder open button on right side
         self.open_output_btn = ttk.Button(
             btn_frame,
             text=get_text("open_output_folder", self.current_lang.get()),
@@ -574,44 +530,8 @@ class ResourcePackConverter(tk.Tk):
         )
         self.open_output_btn.pack(side=tk.RIGHT, padx=5)
 
-    def change_output_location(self):
-        """
-        Handle output location change request
-        
-        Opens a directory selection dialog and updates the output location
-        if a new directory is selected.
-        """
-        new_dir = filedialog.askdirectory(
-            title=get_text("select_output_folder", self.current_lang.get()),
-            initialdir=self.output_dir
-        )
-        if new_dir:
-            self.output_dir = new_dir
-            self.output_path_var.set(new_dir)
-
-    def open_output_folder(self):
-        """
-        Open the output folder in the system's file explorer
-        
-        Uses platform-specific commands to open the folder:
-        - Windows: explorer.exe
-        - macOS: open command
-        - Linux: xdg-open
-        """
-        if sys.platform == "win32":
-            os.startfile(self.output_dir)
-        elif sys.platform == "darwin":  # macOS
-            subprocess.Popen(["open", self.output_dir])
-        else:  # Linux
-            subprocess.Popen(["xdg-open", self.output_dir])
-
     def create_progress(self):
-        """
-        Create the progress bar
-        
-        Creates a progress bar for showing conversion progress
-        and file processing status.
-        """
+        """Create the progress bar"""
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(
             self.main_frame,
@@ -621,12 +541,7 @@ class ResourcePackConverter(tk.Tk):
         self.progress_bar.pack(fill=tk.X, padx=5, pady=5)
 
     def create_status(self):
-        """
-        Create the status display
-        
-        Creates a label for showing status messages and progress information.
-        Text wraps automatically to fit the window width.
-        """
+        """Create the status display"""
         self.status_label = ttk.Label(
             self.main_frame,
             text="",
@@ -635,12 +550,7 @@ class ResourcePackConverter(tk.Tk):
         self.status_label.pack(pady=5, fill=tk.X)
 
     def setup_console(self):
-        """
-        Initialize the console and converter components
-        
-        Creates a GUI console instance and configures the converter
-        module to use it for output and progress tracking.
-        """
+        """Initialize the console and converter components"""
         self.gui_console = GuiConsole(
             self.status_label,
             self.progress_bar,
@@ -650,19 +560,7 @@ class ResourcePackConverter(tk.Tk):
         converter.CustomProgress = CustomProgress
 
     def update_language(self, *args):
-        """
-        Update all interface text when language is changed
-        
-        Updates text in:
-        - Window title
-        - All labels and frame titles
-        - All buttons
-        - Conversion mode radio buttons
-        Also updates the converter module's language setting.
-        
-        Args:
-            *args: Variable arguments (unused, required for trace_add callback)
-        """
+        """Update all interface text when language is changed"""
         lang = self.current_lang.get()
         
         # Update window and main labels
@@ -685,29 +583,44 @@ class ResourcePackConverter(tk.Tk):
         self.open_output_btn.config(text=get_text("open_output_folder", lang))
         
         # Update conversion mode radio buttons
-        for radio_button in self.mode_frame.winfo_children():
+        modes = [
+            ("cmd", "mode_cmd"),
+            ("item", "mode_item"),
+            ("damage", "mode_damage")
+        ]
+        
+        for i, (mode, text_key) in enumerate(modes):
+            radio_button = self.mode_frame.winfo_children()[i]
             if isinstance(radio_button, ttk.Radiobutton):
-                value = radio_button.cget("value")
-                if value == "cmd":
-                    radio_button.config(text=get_text("mode_cmd", lang))
-                elif value == "item":
-                    radio_button.config(text=get_text("mode_item", lang))
+                radio_button.config(text=get_text(text_key, lang))
         
         # Update converter module language
         converter.CURRENT_LANG = lang
 
+    def change_output_location(self):
+        """Handle output location change request"""
+        new_dir = filedialog.askdirectory(
+            title=get_text("select_output_folder", self.current_lang.get()),
+            initialdir=self.output_dir
+        )
+        if new_dir:
+            self.output_dir = new_dir
+            self.output_path_var.set(new_dir)
+
+    def open_output_folder(self):
+        """Open the output folder in the system's file explorer"""
+        if sys.platform == "win32":
+            os.startfile(self.output_dir)
+        elif sys.platform == "darwin":  # macOS
+            subprocess.Popen(["open", self.output_dir])
+        else:  # Linux
+            subprocess.Popen(["xdg-open", self.output_dir])
+
     def set_buttons_state(self, state):
-        """
-        Enable or disable all control buttons
-        
-        Args:
-            state (str): Button state ('disabled' or '!disabled')
-        """
-        # Update main buttons
+        """Enable or disable all control buttons"""
         for btn in [self.folder_btn, self.zip_btn, self.convert_btn, self.clear_btn]:
             btn.state([state])
         
-        # Update conversion mode radio buttons
         for radio_button in self.mode_frame.winfo_children():
             if isinstance(radio_button, ttk.Radiobutton):
                 if state == 'disabled':
@@ -716,19 +629,7 @@ class ResourcePackConverter(tk.Tk):
                     radio_button.state(['!disabled'])
 
     def handle_remove_readonly(self, func, path, exc):
-        """
-        Handle removal of read-only files
-        
-        Special handler for shutil.rmtree to handle read-only files on Windows.
-        
-        Args:
-            func: Original function that failed
-            path: Path to the file/directory
-            exc: Exception information tuple
-        
-        Raises:
-            Original exception if not a permission error
-        """
+        """Handle removal of read-only files"""
         excvalue = exc[1]
         if func in (os.rmdir, os.remove, os.unlink) and excvalue.errno == errno.EACCES:
             os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
@@ -737,18 +638,8 @@ class ResourcePackConverter(tk.Tk):
             raise excvalue
 
     def process_files_async(self, input_path, is_zip=False):
-        """
-        Process input files asynchronously
-        
-        Handles both ZIP files and folders as input. Extracts/copies files
-        to a temporary directory while updating progress.
-        
-        Args:
-            input_path (str): Path to input ZIP file or folder
-            is_zip (bool): Whether the input is a ZIP file
-        """
+        """Process input files asynchronously"""
         try:
-            # Prepare input directory
             input_dir = os.path.join(self.temp_dir, "input")
             if os.path.exists(input_dir):
                 shutil.rmtree(input_dir, onerror=self.handle_remove_readonly)
@@ -756,7 +647,6 @@ class ResourcePackConverter(tk.Tk):
 
             lang = self.current_lang.get()
             
-            # Handle ZIP file input
             if is_zip:
                 self.status_label.config(text=get_text("extracting", lang))
                 with zipfile.ZipFile(input_path, 'r') as zip_ref:
@@ -766,8 +656,6 @@ class ResourcePackConverter(tk.Tk):
                     for i, file in enumerate(file_list, 1):
                         zip_ref.extract(file, input_dir)
                         self.progress_var.set((i / total_files) * 100)
-                        
-            # Handle folder input
             else:
                 self.status_label.config(text=get_text("copying_files", lang))
                 total_items = sum([len(files) for root, _, files in os.walk(input_path) 
@@ -796,19 +684,14 @@ class ResourcePackConverter(tk.Tk):
 
         except Exception as e:
             self.after(0, messagebox.showerror, 
-                        get_text("error", self.current_lang.get()), 
-                        str(e))
+                      get_text("error", self.current_lang.get()), 
+                      str(e))
         finally:
             self.processing = False
             self.after(0, self.set_buttons_state, '!disabled')
 
     def update_file_list(self):
-        """
-        Update the file list display
-        
-        Scans the input directory for JSON files and updates the listbox
-        with their relative paths.
-        """
+        """Update the file list display"""
         self.file_list.delete(0, tk.END)
         input_dir = os.path.join(self.temp_dir, "input")
         for root, _, files in os.walk(input_dir):
@@ -818,12 +701,7 @@ class ResourcePackConverter(tk.Tk):
                     self.file_list.insert(tk.END, rel_path)
 
     def choose_folder(self):
-        """
-        Handle folder selection
-        
-        Opens a folder selection dialog and starts processing the selected
-        folder if one is chosen. Processing is done in a separate thread.
-        """
+        """Handle folder selection"""
         if self.processing:
             return
         
@@ -839,13 +717,7 @@ class ResourcePackConverter(tk.Tk):
             ).start()
 
     def choose_zip(self):
-        """
-        Handle ZIP file selection
-        
-        Opens a file selection dialog for ZIP files and starts processing
-        the selected file if one is chosen. Processing is done in a
-        separate thread.
-        """
+        """Handle ZIP file selection"""
         if self.processing:
             return
             
@@ -862,12 +734,7 @@ class ResourcePackConverter(tk.Tk):
             ).start()
 
     def clear_files(self):
-        """
-        Clear the input file list and temporary directory
-        
-        Removes all files from the input directory, clears the file list display,
-        resets the progress bar, and clears the status message.
-        """
+        """Clear the input file list and temporary directory"""
         self.file_list.delete(0, tk.END)
         input_dir = os.path.join(self.temp_dir, "input")
         if os.path.exists(input_dir):
@@ -877,13 +744,7 @@ class ResourcePackConverter(tk.Tk):
         self.status_label.config(text="")
 
     def start_conversion(self):
-        """
-        Start the conversion process
-        
-        Validates that files are selected before starting conversion.
-        Conversion is performed in a separate thread to prevent GUI freezing.
-        Shows warning if no files are selected.
-        """
+        """Start the conversion process"""
         lang = self.current_lang.get()
         if self.file_list.size() == 0:
             messagebox.showwarning(
@@ -900,19 +761,7 @@ class ResourcePackConverter(tk.Tk):
         threading.Thread(target=self.convert_files).start()
 
     def convert_files(self):
-        """
-        Execute the file conversion process
-        
-        Main conversion process handling both Custom Model Data and Item Model
-        conversions. Creates a ZIP file with the converted files.
-        
-        Process:
-        1. Prepares directories and paths
-        2. Performs conversion based on selected mode
-        3. Creates output ZIP file
-        4. Shows completion message or error
-        5. Cleans up temporary files
-        """
+        """Execute the file conversion process"""
         try:
             lang = self.current_lang.get()
             original_cwd = os.getcwd()
@@ -939,12 +788,13 @@ class ResourcePackConverter(tk.Tk):
             
             try:
                 # Convert files based on selected mode
-                if self.conversion_mode.get() == "cmd":
-                    processed_files = converter.process_directory(temp_input_dir, temp_output_dir)
-                    # Adjust folder structure (CMD mode only)
-                    converter.adjust_folder_structure(temp_output_dir)
-                else:
+                mode = self.conversion_mode.get()
+                if mode == "item":
                     processed_files = converter.process_directory_item_model(temp_input_dir, temp_output_dir)
+                else:  # cmd or damage mode
+                    processed_files = converter.process_directory(temp_input_dir, temp_output_dir, mode)
+                    # Adjust folder structure (CMD and damage mode only)
+                    converter.adjust_folder_structure(temp_output_dir)
                 
                 # Ensure output directory exists
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -969,8 +819,8 @@ class ResourcePackConverter(tk.Tk):
             
         except Exception as e:
             self.after(0, messagebox.showerror, 
-                        get_text("error", lang), 
-                        str(e))
+                      get_text("error", lang), 
+                      str(e))
             
         finally:
             # Cleanup and reset UI
@@ -987,13 +837,7 @@ class ResourcePackConverter(tk.Tk):
                     pass
 
     def on_closing(self):
-        """
-        Handle application closing
-        
-        Shows confirmation dialog before closing, with different messages
-        depending on whether processing is in progress. Cleans up temporary
-        files before exit.
-        """
+        """Handle application closing"""
         lang = self.current_lang.get()
         if self.processing:
             response = messagebox.askokcancel(

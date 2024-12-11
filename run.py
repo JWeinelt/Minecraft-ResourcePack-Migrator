@@ -14,7 +14,7 @@ The script can operate in both Chinese and English, with full bilingual support
 for all user interactions and messages.
 
 Author: RiceChen_
-Version: 1.2.5
+Version: 1.3
 """
 
 import subprocess
@@ -142,6 +142,10 @@ TRANSLATIONS = {
     "mode_item": {
         "zh": "Item Model 轉換",
         "en": "Item Model Conversion"
+    },
+    "mode_damage": {
+        "zh": "Damage 轉換",
+        "en": "Damage Conversion"
     }
 }
 
@@ -190,8 +194,9 @@ def find_convertible_files(directory):
     """
     Search for JSON files that can be converted in the given directory
     
-    Looks for JSON files containing custom model data overrides,
-    checking the file structure to ensure they are valid for conversion.
+    Looks for JSON files containing custom model data overrides
+    or damage predicates, checking the file structure to ensure 
+    they are valid for conversion.
     
     Args:
         directory (str): Directory path to search in
@@ -212,12 +217,17 @@ def find_convertible_files(directory):
                     with open(file_path, 'r', encoding='utf-8') as f:
                         json_data = json.load(f)
                     
-                    # Check for valid override structure
+                    # Check if file has overrides
                     if "overrides" in json_data:
                         for override in json_data.get("overrides", []):
-                            if "predicate" in override and "custom_model_data" in override["predicate"]:
-                                convertible_files.append(os.path.relpath(file_path, directory))
-                                break
+                            if "predicate" in override:
+                                predicate = override["predicate"]
+                                # Check for either custom_model_data or damage predicates
+                                if ("custom_model_data" in predicate or 
+                                    ("damaged" in predicate and "damage" in predicate)):
+                                    convertible_files.append(os.path.relpath(file_path, directory))
+                                    break
+                                    
                 except (json.JSONDecodeError, UnicodeDecodeError, Exception):
                     continue
     
@@ -291,7 +301,7 @@ def main(lang="zh"):
     - Result reporting
     
     Args:
-        lang (str, optional): Language code. Defaults to 'zh'
+        lang (str, optional): Language code. Defaults to "zh"
         
     Returns:
         bool: True if conversion successful, False otherwise
@@ -340,11 +350,20 @@ def main(lang="zh"):
     ))
     console.print("1. [green]" + get_text("mode_cmd", lang) + "[/green]")
     console.print("2. [blue]" + get_text("mode_item", lang) + "[/blue]")
+    console.print("3. [yellow]" + get_text("mode_damage", lang) + "[/yellow]")
     
     mode_choice = Prompt.ask(
-        "Please enter 1 or 2 / 請輸入 1 或 2",
+        "Please enter 1, 2 or 3 / 請輸入 1、2 或 3",
         default="1"
     ).strip()
+    
+    # Map mode choice to mode type
+    mode_mapping = {
+        "1": "cmd",
+        "2": "item",
+        "3": "damage"
+    }
+    selected_mode = mode_mapping.get(mode_choice, "cmd")
 
     # Get user confirmation
     if not Prompt.ask(
@@ -384,11 +403,11 @@ def main(lang="zh"):
 
         try:
             # Execute conversion based on selected mode
-            if mode_choice == "1":
-                processed_files = converter.process_directory(input_dir, temp_output_dir)
-                converter.adjust_folder_structure(temp_output_dir)
-            else:
+            if selected_mode == "item":
                 processed_files = converter.process_directory_item_model(input_dir, temp_output_dir)
+            else:  # cmd or damage mode
+                processed_files = converter.process_directory(input_dir, temp_output_dir, selected_mode)
+                converter.adjust_folder_structure(temp_output_dir)
             
             # Create output ZIP file
             converter.create_zip(temp_output_dir, output_path)
@@ -398,12 +417,19 @@ def main(lang="zh"):
             table = converter.create_file_table(processed_files)
             console.print("\n", table)
 
+            # Show output file information
+            console.print(f"\n[cyan]{get_text('converted_files_count', lang, len(processed_files))}[/cyan]")
+            console.print(f"[cyan]{get_text('output_file', lang)}: {output_zip}[/cyan]")
+
             return True
 
         finally:
             # Clean up temporary directory
             if os.path.exists(temp_output_dir):
-                shutil.rmtree(temp_output_dir)
+                try:
+                    shutil.rmtree(temp_output_dir)
+                except Exception:
+                    pass
 
     except ImportError:
         # Handle missing converter module
