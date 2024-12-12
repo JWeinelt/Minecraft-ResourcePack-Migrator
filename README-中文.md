@@ -170,9 +170,9 @@ python build.py
     ]
 }
 ```
-指令：`/give @s minecraft:stick{damage:30}`
+指令：`/give @s minecraft:wood_sword{damage:30}`
 
-指令：`/give @s minecraft:stick{damage:45}`
+指令：`/give @s minecraft:wood_sword{damage:45}`
 
 新版本格式（1.21.4+）：
 ```json
@@ -204,6 +204,7 @@ python build.py
 }
 ```
 指令：`/give @s wood_sword[damage=30]`
+
 指令：`/give @s wood_sword[damage=45]`
 
 ## 使用需求
