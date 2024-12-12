@@ -203,9 +203,9 @@ New format (1.21.4+):
     }
 }
 ```
-Command: `/give @s wood_sword[damage=30]`
+Command: `/give @s minecraft:wood_sword[damage=30]`
 
-Command: `/give @s wood_sword[damage=45]`
+Command: `/give @s minecraft:wood_sword[damage=45]`
 
 ## Requirements
 

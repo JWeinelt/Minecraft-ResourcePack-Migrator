@@ -203,9 +203,9 @@ python build.py
     }
 }
 ```
-指令：`/give @s wood_sword[damage=30]`
+指令：`/give @s minecraft:wood_sword[damage=30]`
 
-指令：`/give @s wood_sword[damage=45]`
+指令：`/give @s minecraft:wood_sword[damage=45]`
 
 ## 使用需求
 
