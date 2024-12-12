@@ -171,6 +171,7 @@ python build.py
 }
 ```
 指令：`/give @s minecraft:stick{damage:30}`
+
 指令：`/give @s minecraft:stick{damage:45}`
 
 新版本格式（1.21.4+）：
