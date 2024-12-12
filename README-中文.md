@@ -4,13 +4,14 @@ README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
 一個專門用於將 Minecraft 資源包（Resource Pack）從舊版本（1.14）轉換至 1.21.4+ 版本的工具。
 這個工具主要處理物品模型的 JSON 格式轉換，協助創作者快速更新他們的資源包。
 
-![image](https://github.com/user-attachments/assets/8bf0338d-fb65-476a-87f5-25532537b1ba)
+![image](https://github.com/user-attachments/assets/5cd0cc4a-e2b8-443c-8bac-dc896fd7cb4c)
 
 ## 主要功能
 
 - 支援兩種轉換模式：
   1. Custom Model Data 轉換：將舊版 CustomModelData 格式轉換為新格式
   2. Item Model 轉換：根據 CustomModelData 的路徑轉換為獨立的模型檔案
+  3. Damage 模型轉換：轉換基於傷害的模型謂詞
 - 自動調整資料夾結構（`assets/minecraft/models/item/*` → `assets/minecraft/items/*`）
 - 智慧處理 `minecraft:item/` 、 ` minecraft:block/ ` 和 `item/` 的路徑前綴
 - 批次處理整個資源包
@@ -150,6 +151,59 @@ python build.py
 }
 ```
 指令：`/give @s 任意物品[item_model="custom_items/cat_hat/cat_hat_british_shorthair"]`
+
+### 模式三：Damage 轉換
+這是針對單純的 damage 所設計的轉換，
+如果您的初始檔案為 custom model data + damage 的格式，
+請使用 模式一 或者 模式二 。
+
+舊版本格式（1.14 ~ 1.21.3）：
+```json
+{
+    "parent": "item/handheld",
+    "textures": {
+        "layer0": "item/wood_sword"
+    },
+    "overrides": [
+        {"predicate": {"damaged": 1, "damage": 0.25}, "model":"custom_items/wood_sword1"}
+        {"predicate": {"damaged": 1, "damage": 0.50}, "model":"custom_items/wood_sword2"}
+    ]
+}
+```
+指令：`/give @s minecraft:stick{damage:30}`
+指令：`/give @s minecraft:stick{damage:45}`
+
+新版本格式（1.21.4+）：
+```json
+{
+    "model": {
+        "type": "range_dispatch",
+        "property": "damage",
+        "fallback": {
+            "type": "model",
+            "model": "items/wood_sword"
+        },
+        "entries": [
+            {
+                "threshold": 0.25,
+                "model": {
+                    "type": "model",
+                    "model": "custom_items/wood_sword1"
+                }
+            },
+            {
+                "threshold": 0.50,
+                "model": {
+                    "type": "model",
+                    "model": "custom_items/wood_sword2"
+                }
+            }
+        ]
+    }
+}
+```
+指令：`/give @s wood_sword[damage=30]`
+指令：`/give @s wood_sword[damage=45]`
 
 ## 使用需求
 

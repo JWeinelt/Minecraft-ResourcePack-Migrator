@@ -77,8 +77,8 @@ TRANSLATIONS = {
         "en": "Start Convert"
     },
     "author": {
-        "zh": "作者：RiceChen_",
-        "en": "Author: RiceChen_"
+        "zh": "作者：RiceChen_ | 版本：1.3",
+        "en": "Author: RiceChen_ | v1.3"
     },
     "clear_files": {
         "zh": "清除檔案",
@@ -155,7 +155,27 @@ TRANSLATIONS = {
     "select_output_folder": {
         "zh": "選擇輸出資料夾",
         "en": "Select Output Folder"
-    }
+    },
+    "conversion_mode_description": {
+        "zh": "轉換模式說明",
+        "en": "Conversion Mode Description"
+    },
+    "mode_cmd_description": {
+        "zh": "Custom Model Data 轉換模式：適用於依然想要在 1.21.4 以上版本使用 Custom Model Data 定義模型的狀況",
+        "en": "Custom Model Data Conversion Mode: Suitable for scenarios where you want to continue using Custom Model Data to define models in versions 1.21.4 and above"
+    },
+    "mode_item_description": {
+        "zh": "Item Model 轉換模式：直接將定義模型的方式變更為 Item Model，採用定義模型的最新方式",
+        "en": "Item Model Conversion Mode: Directly changes the model definition method to Item Model, adopting the latest model definition approach",
+    },
+    "mode_damage_description": {
+        "zh": "Damage 轉換模式：僅針對透過耐久值來定義模型的情況，如果原先是 Custom Model Data + Damage 情況，請改用其他轉換模式",
+        "en": "Damage Conversion Mode: Only for cases where models are defined by durability. If the original scenario involves Custom Model Data + Damage, please use a different conversion mode",
+    },
+    "report_issue": {
+    "zh": "問題回報與功能請求",
+    "en": "Bug and Feature Request"
+}
 }
 
 def get_text(key, lang):
@@ -314,7 +334,7 @@ class ResourcePackConverter(tk.Tk):
         
         # Basic window setup
         self.title(get_text("title", "zh"))
-        self.geometry("800x600")
+        self.geometry("800x660")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
         # Initialize variables
@@ -384,6 +404,7 @@ class ResourcePackConverter(tk.Tk):
         self.create_title()
         self.create_language_selection()
         self.create_conversion_mode()
+        self.create_mode_description()
         self.create_output_selection()
         self.create_file_list()
         self.create_buttons()
@@ -457,6 +478,45 @@ class ResourcePackConverter(tk.Tk):
                 value=mode
             ).pack(side=tk.LEFT, padx=20, pady=5)
 
+    def create_mode_description(self):
+        """Create a description section for conversion modes"""
+        self.mode_desc_frame = ttk.LabelFrame(
+            self.main_frame,
+            text=get_text("conversion_mode_description", self.current_lang.get())
+        )
+        self.mode_desc_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.mode_description_label = ttk.Label(
+            self.mode_desc_frame,
+            text="",
+            wraplength=750,
+            justify=tk.LEFT
+        )
+        self.mode_description_label.pack(padx=10, pady=5)
+        
+        # Update description based on selected mode
+        self.update_mode_description()
+        
+        # Add trace to update description when mode changes
+        self.conversion_mode.trace_add("write", self.update_mode_description)
+
+    def update_mode_description(self, *args):
+        """Update mode description based on selected conversion mode"""
+        mode = self.conversion_mode.get()
+        lang = self.current_lang.get()
+        
+        descriptions = {
+            "cmd": "mode_cmd_description",
+            "item": "mode_item_description", 
+            "damage": "mode_damage_description"
+        }
+        
+        description_key = descriptions.get(mode)
+        description = get_text(description_key, lang) if description_key else ""
+        
+        if self.mode_description_label:
+            self.mode_description_label.config(text=description)
+
     def create_output_selection(self):
         """Create the output directory selection section"""
         self.output_frame = ttk.LabelFrame(
@@ -498,6 +558,22 @@ class ResourcePackConverter(tk.Tk):
         self.file_list.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         scrollbar.config(command=self.file_list.yview)
 
+        self.file_list.bind('<Double-1>', self.open_selected_file)
+
+    def open_selected_file(self, event):
+        """Open the selected file in the default application"""
+        selected_index = self.file_list.curselection()
+        if selected_index:
+            selected_file = self.file_list.get(selected_index)
+            file_path = os.path.join(os.path.join(self.temp_dir, "input"), selected_file)
+            
+            if sys.platform == "win32":
+                os.startfile(file_path)
+            elif sys.platform == "darwin":  # macOS
+                subprocess.Popen(["open", file_path])
+            else:  # Linux
+                subprocess.Popen(["xdg-open", file_path])
+
     def create_buttons(self):
         """Create the control buttons section"""
         btn_frame = ttk.Frame(self.main_frame)
@@ -511,7 +587,8 @@ class ResourcePackConverter(tk.Tk):
             ("folder_btn", "choose_folder", self.choose_folder),
             ("zip_btn", "choose_zip", self.choose_zip),
             ("convert_btn", "start_convert", self.start_conversion),
-            ("clear_btn", "clear_files", self.clear_files)
+            ("clear_btn", "clear_files", self.clear_files),
+            ("report_btn", "report_issue", self.report_issue)
         ]
         
         for attr, text_key, command in buttons:
@@ -529,6 +606,11 @@ class ResourcePackConverter(tk.Tk):
             command=self.open_output_folder
         )
         self.open_output_btn.pack(side=tk.RIGHT, padx=5)
+
+    def report_issue(self):
+        """Open GitHub issues page in default web browser"""
+        import webbrowser
+        webbrowser.open("https://github.com/BrilliantTeam/Minecraft-ResourcePack-Migrator/issues")
 
     def create_progress(self):
         """Create the progress bar"""
@@ -574,6 +656,10 @@ class ResourcePackConverter(tk.Tk):
         self.list_frame.config(text=get_text("file_list", lang))
         self.output_frame.config(text=get_text("output_folder", lang))
         
+        # Update mode description frame if it exists
+        if hasattr(self, 'mode_desc_frame'):
+            self.mode_desc_frame.config(text=get_text("conversion_mode_description", lang))
+        
         # Update button text
         self.folder_btn.config(text=get_text("choose_folder", lang))
         self.zip_btn.config(text=get_text("choose_zip", lang))
@@ -581,6 +667,7 @@ class ResourcePackConverter(tk.Tk):
         self.clear_btn.config(text=get_text("clear_files", lang))
         self.change_output_btn.config(text=get_text("change_output_folder", lang))
         self.open_output_btn.config(text=get_text("open_output_folder", lang))
+        self.report_btn.config(text=get_text("report_issue", lang))
         
         # Update conversion mode radio buttons
         modes = [
@@ -593,6 +680,9 @@ class ResourcePackConverter(tk.Tk):
             radio_button = self.mode_frame.winfo_children()[i]
             if isinstance(radio_button, ttk.Radiobutton):
                 radio_button.config(text=get_text(text_key, lang))
+        
+        # Update mode description
+        self.update_mode_description()
         
         # Update converter module language
         converter.CURRENT_LANG = lang

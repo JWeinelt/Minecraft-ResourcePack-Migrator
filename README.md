@@ -4,13 +4,14 @@ README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) ]
 A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.
 This tool primarily handles the conversion of item model JSON formats, helping creators quickly update their resource packs.
 
-![image](https://github.com/user-attachments/assets/3764bdd4-69c1-436e-92b5-77d9180f3396)
+![image](https://github.com/user-attachments/assets/bf62788b-1771-4a2c-bb4f-55c410e1ad2e)
 
 ## Key Features
 
 - Supports two conversion modes:
   1. Custom Model Data Conversion: Converts old CustomModelData format to new format
   2. Item Model Conversion: Converts to individual model files based on CustomModelData paths
+  3. Damage Model Conversion: Transforms damage-based model predicates
 - Automatically adjusts folder structure (`assets/minecraft/models/item/*` → `assets/minecraft/items/*`)
 - Intelligently handles `minecraft:item/` , ` minecraft:block/ ` and `item/` path prefixes
 - Batch processes entire resource packs
@@ -150,6 +151,59 @@ Command: `/give @s itemname[item_model="custom_items/cat_hat/cat_hat_black"]`
 }
 ```
 Command: `/give @s itemname[item_model="custom_items/cat_hat/cat_hat_british_shorthair"]`
+
+### Mode 3: Damage Conversion
+This mode is designed specifically for pure damage-based conversions.
+If your initial file is in a custom model data + damage format,
+please use Mode 1 or Mode 2 instead.
+
+Old format (1.14 ~ 1.21.3):
+```json
+{
+    "parent": "item/handheld",
+    "textures": {
+        "layer0": "item/wood_sword"
+    },
+    "overrides": [
+        {"predicate": {"damaged": 1, "damage": 0.25}, "model":"custom_items/wood_sword1"},
+        {"predicate": {"damaged": 1, "damage": 0.50}, "model":"custom_items/wood_sword2"}
+    ]
+}
+```
+Command: `/give @s minecraft:stick{damage:30}`
+Command: `/give @s minecraft:stick{damage:45}`
+
+New format (1.21.4+):
+```json
+{
+    "model": {
+        "type": "range_dispatch",
+        "property": "damage",
+        "fallback": {
+            "type": "model",
+            "model": "items/wood_sword"
+        },
+        "entries": [
+            {
+                "threshold": 0.25,
+                "model": {
+                    "type": "model",
+                    "model": "custom_items/wood_sword1"
+                }
+            },
+            {
+                "threshold": 0.50,
+                "model": {
+                    "type": "model",
+                    "model": "custom_items/wood_sword2"
+                }
+            }
+        ]
+    }
+}
+```
+Command: `/give @s wood_sword[damage=30]`
+Command: `/give @s wood_sword[damage=45]`
 
 ## Requirements
 
