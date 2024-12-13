@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.3
+Version: 1.3.1
 """
 
 import json
@@ -143,6 +143,34 @@ def get_progress_bar():
         refresh_per_second=10,
         expand=True
     )
+
+def is_head_model(json_data, file_path=""):
+    """
+    Check if the JSON data represents a head/skull model based on file path
+    
+    Args:
+        json_data (dict): Input JSON data (kept for backwards compatibility)
+        file_path (str): Path to the JSON file
+        
+    Returns:
+        tuple: (bool, str, str) - (is head model, head kind, base model path)
+    """
+    normalized_path = os.path.basename(file_path).lower()
+    
+    head_mappings = {
+        "player_head.json": ("player", "minecraft:item/template_skull"),
+        "piglin_head.json": ("piglin", "minecraft:item/template_skull"),
+        "zombie_head.json": ("zombie", "minecraft:item/template_skull"),
+        "creeper_head.json": ("creeper", "minecraft:item/template_skull"),
+        "dragon_head.json": ("dragon", "minecraft:item/dragon_head"),
+        "wither_skeleton_skull.json": ("wither_skeleton", "minecraft:item/template_skull"),
+        "skeleton_skull.json": ("skeleton", "minecraft:item/template_skull")
+    }
+    
+    if normalized_path in head_mappings:
+        return True, head_mappings[normalized_path][0], head_mappings[normalized_path][1]
+        
+    return False, None, None
 
 def is_damage_model(json_data):
     """
@@ -520,10 +548,16 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
 
     # Special handling for chests
     is_chest, chest_type = is_chest_model(json_data, file_path)
-    if is_chest:
+    
+    # Special handling for heads/skulls
+    is_head, head_kind, head_base = is_head_model(json_data, file_path)
+
+    if is_head:
+        base_path = head_base
+    elif is_chest:
         base_path = f"item/{chest_type}"
     else:
-        # Normal path normalization for non-chest items
+        # Normal path normalization for non-chest/non-head items
         if base_texture and not is_potion:
             # Special handling for crossbow_standby
             if base_path == "item/crossbow_standby":
@@ -541,7 +575,16 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
                     base_path = f"minecraft:item/{base_path}"
 
     # Create fallback structure based on type
-    if is_chest:
+    if is_head:
+        fallback = {
+            "type": "minecraft:special",
+            "base": base_path,
+            "model": {
+                "type": "minecraft:head",
+                "kind": head_kind
+            }
+        }
+    elif is_chest:
         fallback = {
             "type": "minecraft:special",
             "base": base_path,
