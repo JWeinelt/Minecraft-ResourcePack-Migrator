@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.3.1
+Version: 1.3.2
 """
 
 import json
@@ -143,6 +143,76 @@ def get_progress_bar():
         refresh_per_second=10,
         expand=True
     )
+
+def is_shield_model(json_data, file_path=""):
+    """
+    Check if the JSON data represents a shield model based on file path and content
+    
+    Args:
+        json_data (dict): Input JSON data
+        file_path (str): Path to the JSON file
+        
+    Returns:
+        bool: True if it's a shield model, False otherwise
+    """
+    normalized_path = os.path.basename(file_path).lower()
+    
+    # Check filename
+    if normalized_path == "shield.json":
+        return True
+        
+    # Check parent and overrides
+    if (json_data.get("parent") == "builtin/entity" and 
+        "overrides" in json_data and
+        any("blocking" in o.get("predicate", {}) for o in json_data.get("overrides", []))):
+        return True
+        
+    return False
+
+def get_shield_model(cmd_value, base_model, blocking_model, json_data):
+    """
+    Generate shield model structure for a specific custom model data value
+    
+    Args:
+        cmd_value (int): Custom model data value
+        base_model (str): Base model path
+        blocking_model (str): Model path for blocking state
+        json_data (dict): Original JSON data
+        
+    Returns:
+        dict: Shield model structure
+    """
+    # Find models for this CMD value
+    normal_model = None
+    blocking_model_override = None
+    
+    for override in json_data.get("overrides", []):
+        predicate = override.get("predicate", {})
+        if predicate.get("custom_model_data") == cmd_value:
+            # Check if this is a blocking state for this CMD
+            if predicate.get("blocking", 0) == 1:
+                blocking_model_override = override["model"]
+            # If no blocking predicate, this is the normal model
+            elif "blocking" not in predicate:
+                normal_model = override["model"]
+    
+    # If we don't have both models, we can't create a proper shield entry
+    if not normal_model:
+        return None
+        
+    # Create shield model structure with new format
+    return {
+        "type": "minecraft:condition",
+        "property": "minecraft:using_item",
+        "on_false": {
+            "type": "minecraft:model",
+            "model": normal_model
+        },
+        "on_true": {
+            "type": "minecraft:model",
+            "model": blocking_model_override or normal_model
+        }
+    }
 
 def is_head_model(json_data, file_path=""):
     """
@@ -552,6 +622,9 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
     # Special handling for heads/skulls
     is_head, head_kind, head_base = is_head_model(json_data, file_path)
 
+    # Special handling for shields
+    is_shield = is_shield_model(json_data, file_path)
+
     if is_head:
         base_path = head_base
     elif is_chest:
@@ -574,8 +647,46 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
                 elif not base_path.startswith("minecraft:"):
                     base_path = f"minecraft:item/{base_path}"
 
+    if is_shield:
+        # Find base blocking model
+        blocking_model = None
+        for override in json_data.get("overrides", []):
+            if ("predicate" in override and 
+                "blocking" in override["predicate"] and 
+                override["predicate"].get("blocking") == 1 and
+                "custom_model_data" not in override["predicate"]):
+                blocking_model = override["model"]
+                break
+                
+        if not blocking_model:
+            blocking_model = "minecraft:item/shield_blocking"
+            
+        if not blocking_model.startswith("minecraft:"):
+            blocking_model = f"minecraft:{blocking_model}"
+            
+        base_path = "minecraft:item/shield"
+
     # Create fallback structure based on type
-    if is_head:
+    if is_shield:
+        fallback = {
+            "type": "minecraft:condition",
+            "property": "minecraft:using_item",
+            "on_false": {
+                "type": "minecraft:special",
+                "base": "minecraft:item/shield",
+                "model": {
+                    "type": "minecraft:shield"
+                }
+            },
+            "on_true": {
+                "type": "minecraft:special",
+                "base": "minecraft:item/shield_blocking",
+                "model": {
+                    "type": "minecraft:shield"
+                }
+            }
+        }
+    elif is_head:
         fallback = {
             "type": "minecraft:special",
             "base": base_path,
@@ -795,13 +906,17 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
 
     else:
         # Handle normal items and chests
-        for override in json_data["overrides"]:
+        cmd_groups = {}  # Group overrides by cmd value
+        
+        # First pass: group overrides by CMD value
+        for override in json_data.get("overrides", []):
             if "predicate" in override and "custom_model_data" in override["predicate"]:
+                cmd = int(override["predicate"]["custom_model_data"])
                 model_path = override["model"]
                 
                 if is_chest:
                     entry = {
-                        "threshold": int(override["predicate"]["custom_model_data"]),
+                        "threshold": cmd,
                         "model": {
                             "type": "minecraft:select",
                             "property": "minecraft:local_time",
@@ -833,15 +948,36 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
                             }
                         }
                     }
+                    new_format["model"]["entries"].append(entry)
+                elif is_shield:
+                    if cmd not in cmd_groups:
+                        cmd_groups[cmd] = []
+                    cmd_groups[cmd].append(override)
                 else:
                     entry = {
-                        "threshold": int(override["predicate"]["custom_model_data"]),
+                        "threshold": cmd,
                         "model": {
                             "type": "model",
                             "model": model_path
                         }
                     }
-                new_format["model"]["entries"].append(entry)
+                    new_format["model"]["entries"].append(entry)
+        
+        # Second pass: process shield models
+        if is_shield:
+            for cmd in sorted(cmd_groups.keys()):
+                shield_entry = get_shield_model(
+                    cmd,
+                    base_path,
+                    blocking_model,
+                    json_data
+                )
+                if shield_entry:
+                    entry = {
+                        "threshold": cmd,
+                        "model": shield_entry
+                    }
+                    new_format["model"]["entries"].append(entry)
 
     return new_format
 
@@ -1025,6 +1161,52 @@ def convert_item_model_format(json_data, output_path, input_path=""):
                     }
                 }
                 new_json["model"]["entries"].append(entry)
+
+        elif is_shield_model(json_data, input_path):
+            # Find base and blocking models for this CMD
+            normal_model = None
+            blocking_model = None
+            
+            for override in json_data["overrides"]:
+                predicate = override.get("predicate", {})
+                if predicate.get("custom_model_data") == cmd:
+                    if predicate.get("blocking", 0) == 1:
+                        blocking_model = override["model"]
+                    elif "blocking" not in predicate:
+                        normal_model = override["model"]
+            
+            if normal_model:
+                model_path = normal_model
+                if ":" in model_path:
+                    namespace, path = model_path.split(":", 1)
+                    file_name = os.path.join(output_path, namespace, path) + ".json"
+                else:
+                    file_name = os.path.join(output_path, model_path + ".json")
+
+                os.makedirs(os.path.dirname(file_name), exist_ok=True)
+                
+                new_json = {
+                    "model": {
+                        "type": "minecraft:condition",
+                        "property": "minecraft:using_item",
+                        "on_false": {
+                            "type": "minecraft:model",
+                            "model": normal_model
+                        },
+                        "on_true": {
+                            "type": "minecraft:model",
+                            "model": blocking_model or normal_model
+                        }
+                    }
+                }
+
+                # Add display settings if present
+                if "display" in json_data:
+                    new_json["display"] = json_data["display"]
+
+                # Write the output file
+                with open(file_name, 'w', encoding='utf-8') as f:
+                    json.dump(new_json, f, indent=4)
 
         # Handle potion models
         elif is_potion_model(json_data, input_path):
