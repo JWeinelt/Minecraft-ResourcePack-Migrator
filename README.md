@@ -4,6 +4,16 @@ README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) ]
 A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.
 This tool primarily handles the conversion of item model JSON formats, helping creators quickly update their resource packs.
 
+> [!Important]  
+> This converter only processes JSON files located in the `models/item` directory that include `Custom Model Data` or `Custom Model Data + Damage`.  
+> It does not handle JSON files in other directories; you will need to manually manage files outside this directory (in most cases, no additional processing is required).  
+> 
+> This approach minimizes unexpected issues and ensures the smallest possible difference between the converted resource pack and the original.  
+> 
+> If you find that JSON files under the `models/item` directory containing `Custom Model Data` or `Custom Model Data + Damage` do not work correctly after conversion, this is indeed a mistake on the converter's part. Please make sure to report it to me.  
+> 
+> However, if the issue arises from files outside the `models/item` directory, or from files within `models/item` that do not contain `Custom Model Data` or `Damage`, this is not a fault of the converter, as it does not process those files.  
+
 ![image](https://github.com/user-attachments/assets/bf62788b-1771-4a2c-bb4f-55c410e1ad2e)
 
 ## Key Features

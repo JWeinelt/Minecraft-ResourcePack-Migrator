@@ -4,6 +4,16 @@ README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
 一個專門用於將 Minecraft 資源包（Resource Pack）從舊版本（1.14）轉換至 1.21.4+ 版本的工具。
 這個工具主要處理物品模型的 JSON 格式轉換，協助創作者快速更新他們的資源包。
 
+> [!Important]
+> 此轉換器僅處理於` model/item `目錄下，帶有` Custom Model Data `、` Custom Model Data + Damage `的 JSON 檔案，
+> 它不會幫你處理於其他目錄下的 JSON 檔案，你需要自行處理在其他目錄的檔案（一般使用情況下也不需要處理）。
+> 這是為了避免更多的意外情況發生，以保證轉換後資源包的與原先資源包的最小差異，
+> 如果你在轉換後，發現於` model/item `目錄下，帶有` Custom Model Data `、` Custom Model Data + Damage `的 JSON 檔案沒有正確運作，
+> 那麼，這確實是轉換器的疏漏，請務必回報給我，
+> 
+> 但如果你發現出問題的點在非` model/item `目錄，或者於` model/item `但是沒有` Custom Model Data `或` Damage `，
+> 那麼這並非轉換器的疏漏，因為轉換器根本不會處理這些檔案。
+
 ![image](https://github.com/user-attachments/assets/5cd0cc4a-e2b8-443c-8bac-dc896fd7cb4c)
 
 ## 主要功能
