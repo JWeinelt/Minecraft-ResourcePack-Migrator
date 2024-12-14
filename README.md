@@ -1,8 +1,8 @@
 README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) ]
 # Minecraft-ResourcePack-Migrator 1.14 ~ 1.21.4+
 
-A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.
-This tool primarily handles the conversion of item model JSON formats, helping creators quickly update their resource packs.
+A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.  
+This tool primarily handles the conversion of item model JSON formats, helping creators quickly update their resource packs.  
 
 > [!Important]  
 > This converter only processes JSON files located in the `models/item` directory that include `Custom Model Data` or `Custom Model Data + Damage`.  
@@ -135,9 +135,8 @@ Original file (`assets/minecraft/models/item/stick.json`):
     ]
 }
 ```
-Command: `/give @p minecraft:stick[custom_model_data={floats:[19002]}]`
-
-Command: `/give @p minecraft:stick[custom_model_data={floats:[19003]}]`
+Command: `/give @p minecraft:stick[custom_model_data={floats:[19002]}]`  
+Command: `/give @p minecraft:stick[custom_model_data={floats:[19003]}]`  
 
 Converted files:
 1. `assets/minecraft/items/custom_items/cat_hat/cat_hat_black.json`:
@@ -180,9 +179,8 @@ Old format (1.14 ~ 1.21.3):
     ]
 }
 ```
-Command: `/give @s minecraft:wood_sword{damage:30}`
-
-Command: `/give @s minecraft:wood_sword{damage:45}`
+Command: `/give @s minecraft:wood_sword{damage:30}`  
+Command: `/give @s minecraft:wood_sword{damage:45}`  
 
 New format (1.21.4+):
 ```json
@@ -213,9 +211,8 @@ New format (1.21.4+):
     }
 }
 ```
-Command: `/give @s minecraft:wood_sword[damage=30]`
-
-Command: `/give @s minecraft:wood_sword[damage=45]`
+Command: `/give @s minecraft:wood_sword[damage=30]`  
+Command: `/give @s minecraft:wood_sword[damage=45]`  
 
 ## Requirements
 

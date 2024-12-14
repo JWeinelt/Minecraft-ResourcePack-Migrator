@@ -1,8 +1,8 @@
 README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
 # Minecraft-ResourcePack-Migrator 1.14 ~ 1.21.4+
 
-一個專門用於將 Minecraft 資源包（Resource Pack）從舊版本（1.14）轉換至 1.21.4+ 版本的工具。
-這個工具主要處理物品模型的 JSON 格式轉換，協助創作者快速更新他們的資源包。
+一個專門用於將 Minecraft 資源包（Resource Pack）從舊版本（1.14）轉換至 1.21.4+ 版本的工具。  
+這個工具主要處理物品模型的 JSON 格式轉換，協助創作者快速更新他們的資源包。  
 
 > [!Important]
 > 此轉換器僅處理於` model/item `目錄下，帶有` Custom Model Data `、` Custom Model Data + Damage `的 JSON 檔案，  
@@ -135,9 +135,8 @@ python build.py
     ]
 }
 ```
-指令：`/give @s minecraft:stick{CustomModelData:19002}`
-
-指令：`/give @s minecraft:stick{CustomModelData:19003}`
+指令：`/give @s minecraft:stick{CustomModelData:19002}`  
+指令：`/give @s minecraft:stick{CustomModelData:19003}`  
 
 轉換後的檔案：
 1. `assets/minecraft/items/custom_items/cat_hat/cat_hat_black.json`：
@@ -180,9 +179,8 @@ python build.py
     ]
 }
 ```
-指令：`/give @s minecraft:wood_sword{damage:30}`
-
-指令：`/give @s minecraft:wood_sword{damage:45}`
+指令：`/give @s minecraft:wood_sword{damage:30}`  
+指令：`/give @s minecraft:wood_sword{damage:45}`  
 
 新版本格式（1.21.4+）：
 ```json
@@ -213,9 +211,8 @@ python build.py
     }
 }
 ```
-指令：`/give @s minecraft:wood_sword[damage=30]`
-
-指令：`/give @s minecraft:wood_sword[damage=45]`
+指令：`/give @s minecraft:wood_sword[damage=30]`  
+指令：`/give @s minecraft:wood_sword[damage=45]`  
 
 ## 使用需求
 
