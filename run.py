@@ -14,7 +14,7 @@ The script can operate in both Chinese and English, with full bilingual support
 for all user interactions and messages.
 
 Author: RiceChen_
-Version: 1.3.2
+Version: 1.3.3
 """
 
 import subprocess
