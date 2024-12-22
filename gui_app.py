@@ -77,8 +77,8 @@ TRANSLATIONS = {
         "en": "Start Convert"
     },
     "author": {
-        "zh": "作者：RiceChen_ | 版本：1.3.3",
-        "en": "Author: RiceChen_ | v1.3.3"
+        "zh": "作者：RiceChen_ | 版本：1.3.4",
+        "en": "Author: RiceChen_ | v1.3.4"
     },
     "clear_files": {
         "zh": "清除檔案",
