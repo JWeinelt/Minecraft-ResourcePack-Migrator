@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.3.3
+Version: 1.3.4
 """
 
 import json
@@ -651,8 +651,9 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
     # Special handling for bow and crossbow - moved before other conditions
     # Check the filename first for more accurate type detection
     normalized_filename = os.path.basename(file_path).lower()
-    is_bow = (normalized_filename == "bow.json") or (not is_chest and "bow" in base_path and "crossbow" not in base_path)
-    is_crossbow = (normalized_filename == "crossbow.json") or (not is_chest and "crossbow" in base_path)
+    filename_without_ext = os.path.splitext(normalized_filename)[0]
+    is_bow = (normalized_filename == "bow.json") or (not is_chest and filename_without_ext == "bow")
+    is_crossbow = (normalized_filename == "crossbow.json") or (not is_chest and filename_without_ext == "crossbow")
 
     # First check for mixed custom_model_data and damage model
     if has_mixed_custom_damage(json_data):

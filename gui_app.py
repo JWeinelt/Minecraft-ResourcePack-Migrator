@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.3.3
+Version: 1.3.4
 """
 
 import sys
