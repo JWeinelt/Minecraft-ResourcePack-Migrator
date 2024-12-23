@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.3.4
+Version: 1.3.5
 """
 
 import sys
@@ -77,8 +77,8 @@ TRANSLATIONS = {
         "en": "Start Convert"
     },
     "author": {
-        "zh": "作者：RiceChen_ | 版本：1.3.4",
-        "en": "Author: RiceChen_ | v1.3.4"
+        "zh": "作者：RiceChen_ | 版本：1.3.5",
+        "en": "Author: RiceChen_ | v1.3.5"
     },
     "clear_files": {
         "zh": "清除檔案",
@@ -337,29 +337,63 @@ class ResourcePackConverter(tk.Tk):
         self.geometry("800x660")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # Initialize variables
-        self.current_lang = tk.StringVar(value="zh")
-        self.current_lang.trace_add("write", self.update_language)
-        self.conversion_mode = tk.StringVar(value="cmd")
-        self.processing = False
-        
         # Setup program directories
         self.program_dir = os.path.join(os.environ['ProgramFiles'], 'MCPackConverter')
         self.setup_directories()
+        
+        # Load settings
+        self.settings_file = os.path.join(self.program_dir, 'settings.json')
+        self.load_settings()
+        
+        # Initialize variables with loaded settings
+        self.current_lang = tk.StringVar(value=self.settings.get('language', 'zh'))
+        self.current_lang.trace_add("write", self.update_language)
+        self.conversion_mode = tk.StringVar(value="cmd")
+        self.processing = False
         
         # Create temporary working directory
         self.temp_dir = tempfile.mkdtemp(prefix="mcpack_")
         os.chmod(self.temp_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
         os.makedirs(os.path.join(self.temp_dir, "input"), exist_ok=True)
         
-        # Set output directory
-        self.output_dir = os.path.join(self.program_dir, "output")
+        # Set output directory from settings
+        self.output_dir = self.settings.get('output_dir', os.path.join(self.program_dir, "output"))
         
         # Create main frame and GUI elements
         self.setup_gui()
         
         # Initialize console and converter
         self.setup_console()
+
+    def load_settings(self):
+        """Load settings from JSON file"""
+        try:
+            if os.path.exists(self.settings_file):
+                with open(self.settings_file, 'r', encoding='utf-8') as f:
+                    self.settings = json.load(f)
+            else:
+                self.settings = {
+                    'language': 'zh',
+                    'output_dir': os.path.join(self.program_dir, "output")
+                }
+        except Exception:
+            # If there's any error loading settings, use defaults
+            self.settings = {
+                'language': 'zh',
+                'output_dir': os.path.join(self.program_dir, "output")
+            }
+
+    def save_settings(self):
+        """Save current settings to JSON file"""
+        try:
+            settings_data = {
+                'language': self.current_lang.get(),
+                'output_dir': self.output_dir
+            }
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
+                json.dump(settings_data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(f"Error saving settings: {str(e)}")
 
     def setup_directories(self):
         """Set up necessary program directories with appropriate permissions"""
@@ -687,6 +721,9 @@ class ResourcePackConverter(tk.Tk):
         # Update converter module language
         converter.CURRENT_LANG = lang
 
+        # Save settings after language change
+        self.save_settings()
+
     def change_output_location(self):
         """Handle output location change request"""
         new_dir = filedialog.askdirectory(
@@ -696,6 +733,8 @@ class ResourcePackConverter(tk.Tk):
         if new_dir:
             self.output_dir = new_dir
             self.output_path_var.set(new_dir)
+            # Save settings after changing output location
+            self.save_settings()
 
     def open_output_folder(self):
         """Open the output folder in the system's file explorer"""
@@ -943,6 +982,9 @@ class ResourcePackConverter(tk.Tk):
             )
         
         if response:
+            # Save settings before closing
+            self.save_settings()
+            
             if os.path.exists(self.temp_dir):
                 try:
                     shutil.rmtree(self.temp_dir, onerror=self.handle_remove_readonly)
