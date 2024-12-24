@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.3.5
+Version: 1.3.6
 """
 
 import json
@@ -734,11 +734,33 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
         }
     elif is_chest:
         fallback = {
-            "type": "minecraft:special",
-            "base": base_path,
-            "model": {
-                "type": "minecraft:chest",
-                "texture": "minecraft:normal"
+            "type": "minecraft:select",
+            "property": "minecraft:local_time",
+            "pattern": "MM-dd",
+            "cases": [
+                {
+                    "model": {
+                        "type": "minecraft:special",
+                        "base": base_path,
+                        "model": {
+                            "type": "minecraft:chest",
+                            "texture": "minecraft:christmas"
+                        }
+                    },
+                    "when": [
+                        "12-24",
+                        "12-25",
+                        "12-26"
+                    ]
+                }
+            ],
+            "fallback": {
+                "type": "minecraft:special",
+                "base": base_path,
+                "model": {
+                    "type": "minecraft:chest",
+                    "texture": "minecraft:normal"
+                }
             }
         }
     elif is_potion:

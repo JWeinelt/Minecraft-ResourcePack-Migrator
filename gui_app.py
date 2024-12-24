@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.3.5
+Version: 1.3.6
 """
 
 import sys
@@ -77,8 +77,8 @@ TRANSLATIONS = {
         "en": "Start Convert"
     },
     "author": {
-        "zh": "作者：RiceChen_ | 版本：1.3.5",
-        "en": "Author: RiceChen_ | v1.3.5"
+        "zh": "作者：RiceChen_ | 版本：1.3.6",
+        "en": "Author: RiceChen_ | v1.3.6"
     },
     "clear_files": {
         "zh": "清除檔案",
