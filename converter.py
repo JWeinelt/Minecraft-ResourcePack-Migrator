@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.3.6
+Version: 1.4
 """
 
 import json

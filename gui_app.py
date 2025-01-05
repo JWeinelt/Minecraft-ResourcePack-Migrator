@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.3.6
+Version: 1.4
 """
 
 import sys
@@ -77,8 +77,8 @@ TRANSLATIONS = {
         "en": "Start Convert"
     },
     "author": {
-        "zh": "作者：RiceChen_ | 版本：1.3.6",
-        "en": "Author: RiceChen_ | v1.3.6"
+        "zh": "作者：RiceChen_ | 版本：1.4",
+        "en": "Author: RiceChen_ | v1.4"
     },
     "clear_files": {
         "zh": "清除檔案",
@@ -338,8 +338,11 @@ class ResourcePackConverter(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
         # Setup program directories
-        self.program_dir = os.path.join(os.environ['ProgramFiles'], 'MCPackConverter')
-        self.setup_directories()
+        if sys.platform == "win32":
+            self.program_dir = os.path.join(os.environ['APPDATA'], 'MCPackConverter')
+        else:
+            # For Linux/MacOS, use standard user config directory
+            self.program_dir = os.path.join(os.path.expanduser('~'), '.mcpackconverter')
         
         # Load settings
         self.settings_file = os.path.join(self.program_dir, 'settings.json')
@@ -396,7 +399,7 @@ class ResourcePackConverter(tk.Tk):
             print(f"Error saving settings: {str(e)}")
 
     def setup_directories(self):
-        """Set up necessary program directories with appropriate permissions"""
+        """Set up necessary program directories"""
         try:
             # Create main program directory
             if not os.path.exists(self.program_dir):
@@ -407,28 +410,13 @@ class ResourcePackConverter(tk.Tk):
                 dir_path = os.path.join(self.program_dir, dir_name)
                 if not os.path.exists(dir_path):
                     os.makedirs(dir_path)
-            
-            # Set directory permissions
-            for root, dirs, files in os.walk(self.program_dir):
-                for d in dirs:
-                    dir_path = os.path.join(root, d)
-                    os.chmod(dir_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-                for f in files:
-                    file_path = os.path.join(root, f)
-                    os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
-                    
-        except PermissionError:
-            messagebox.showerror(
-                "Error",
-                "Unable to create necessary directories. Please run as administrator."
-            )
-            sys.exit(1)
+                        
         except Exception as e:
             messagebox.showerror(
                 "Error",
                 f"Error while setting up directories: {str(e)}"
             )
-            sys.exit(1)
+        sys.exit(1)
 
     def setup_gui(self):
         """Set up the main GUI components"""
@@ -738,6 +726,10 @@ class ResourcePackConverter(tk.Tk):
 
     def open_output_folder(self):
         """Open the output folder in the system's file explorer"""
+        # Ensure output directory exists before trying to open it
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+            
         if sys.platform == "win32":
             os.startfile(self.output_dir)
         elif sys.platform == "darwin":  # macOS
