@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.4
+Version: 1.4.1
 """
 
 import sys
@@ -32,6 +32,8 @@ import json
 import threading
 from rich.console import Console
 import subprocess
+import tkinter as tk
+from tkinter import ttk, filedialog
 
 # Language translation mapping dictionary
 # Keys are UI element identifiers, values are language-specific translations
@@ -77,8 +79,8 @@ TRANSLATIONS = {
         "en": "Start Convert"
     },
     "author": {
-        "zh": "作者：RiceChen_ | 版本：1.4",
-        "en": "Author: RiceChen_ | v1.4"
+        "zh": "作者：RiceChen_ | 版本：1.4.1",
+        "en": "Author: RiceChen_ | v1.4.1"
     },
     "clear_files": {
         "zh": "清除檔案",
@@ -175,8 +177,16 @@ TRANSLATIONS = {
     "report_issue": {
     "zh": "問題回報與功能請求",
     "en": "Bug and Feature Request"
+    }
 }
-}
+
+def get_resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 def get_text(key, lang):
     """
@@ -336,6 +346,14 @@ class ResourcePackConverter(tk.Tk):
         self.title(get_text("title", "zh"))
         self.geometry("800x660")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.current_svg = None
+        
+        try:
+            icon_path = get_resource_path("assets/icon.ico")
+            self.iconbitmap(icon_path)
+        except Exception as e:
+            print(f"An error occurred while loading icons:{str(e)}")
         
         # Setup program directories
         if sys.platform == "win32":

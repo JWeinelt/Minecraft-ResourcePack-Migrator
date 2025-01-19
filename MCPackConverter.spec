@@ -7,7 +7,8 @@ a = Analysis(
     binaries=[],              # Additional binary files to include
     datas=[                   # Additional data files to include
         ('converter.py', '.'),
-        ('run.py', '.')
+        ('run.py', '.'),
+        ('assets/icon.ico', 'assets')
     ],
     hiddenimports=[          # Additional imports that PyInstaller might miss
         'tkinter',
@@ -58,4 +59,5 @@ exe = EXE(
     codesign_identity=None,             # Code signing identity
     entitlements_file=None,             # Entitlements file
     manifest='uac_manifest.xml',        # Use the UAC manifest file
+    icon='assets\icon.ico'             # EXE Icon
 )

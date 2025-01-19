@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.4
+Version: 1.4.1
 """
 
 import json
@@ -664,7 +664,69 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
         return convert_damage_model(json_data, base_path)
 
     if is_head:
-        base_path = head_base
+        # Ensure base path is a full minecraft: path
+        if not head_base.startswith("minecraft:"):
+            head_base = f"minecraft:{head_base}"
+        
+        # Create basic structure for new format
+        new_format = {
+            "model": {
+                "type": "range_dispatch" if not is_item_model else "model",
+                "property": "custom_model_data" if not is_item_model else None,
+                "fallback": {
+                    "type": "minecraft:special",
+                    "base": head_base,
+                    "model": {
+                        "type": "minecraft:head",
+                        "kind": head_kind
+                    }
+                },
+                "entries": [] if not is_item_model else None
+            }
+        }
+
+        # Add display settings if present
+        if "display" in json_data:
+            new_format["display"] = json_data["display"]
+
+        # Process overrides
+        if "overrides" in json_data:
+            for override in json_data.get("overrides", []):
+                if "predicate" in override and "custom_model_data" in override["predicate"]:
+                    cmd = int(override["predicate"]["custom_model_data"])
+                    model_path = override["model"]
+                    
+                    # Ensure model path is a full path
+                    if not model_path.startswith("minecraft:") and not ":" in model_path:
+                        model_path = f"minecraft:item/{model_path}"
+                    
+                    # Special handling ONLY for player head
+                    if head_kind == "player":
+                        entry = {
+                            "threshold": cmd,
+                            "model": {
+                                "type": "minecraft:special",
+                                "base": model_path,
+                                "model": {
+                                    "type": "minecraft:head",
+                                    "kind": head_kind
+                                }
+                            }
+                        }
+                    else:
+                        # For other head types, use simple model type
+                        entry = {
+                            "threshold": cmd,
+                            "model": {
+                                "type": "model",
+                                "model": model_path
+                            }
+                        }
+                    
+                    new_format["model"]["entries"].append(entry)
+
+        return new_format
+
     elif is_chest:
         base_path = f"item/{chest_type}"
     else:
@@ -724,14 +786,36 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
             }
         }
     elif is_head:
-        fallback = {
-            "type": "minecraft:special",
-            "base": base_path,
+        # Create a simple conversion that doesn't use special head model type
+        new_format = {
             "model": {
-                "type": "minecraft:head",
-                "kind": head_kind
+                "type": "range_dispatch" if not is_item_model else "model",
+                "property": "custom_model_data" if not is_item_model else None,
+                "fallback": {
+                    "type": "model",
+                    "model": head_base
+                },
+                "entries": [] if not is_item_model else None
             }
         }
+
+        # Process overrides
+        if "overrides" in json_data:
+            for override in json_data.get("overrides", []):
+                if "predicate" in override and "custom_model_data" in override["predicate"]:
+                    cmd = int(override["predicate"]["custom_model_data"])
+                    model_path = override["model"]
+                    
+                    entry = {
+                        "threshold": cmd,
+                        "model": {
+                            "type": "model",
+                            "model": model_path
+                        }
+                    }
+                    new_format["model"]["entries"].append(entry)
+
+        return new_format
     elif is_chest:
         fallback = {
             "type": "minecraft:select",
