@@ -4,7 +4,7 @@ README LANGUAGES [ [English](README.md) | [中文](README-中文.md) | [**Spanis
 Una herramienta diseñada para convertir paquetes de recursos de Minecraft de versiones antiguas (1.14) al formato 1.21.4+.  
 Esta herramienta se centra principalmente en la conversión de formatos JSON de modelos de objetos, ayudando a los creadores a actualizar rápidamente sus paquetes de recursos.  
 
-> [!Importante]  
+> [!Important]  
 > Este convertidor solo procesa archivos JSON ubicados en el directorio `models/item` que incluyen `Custom Model Data` o `Custom Model Data + Damage`.  
 > No maneja archivos JSON en otros directorios; deberás gestionar manualmente los archivos fuera de este directorio (en la mayoría de los casos, no se requiere procesamiento adicional).  
 > 
