@@ -1,4 +1,4 @@
-README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) ]
+README LANGUAGES [ [**English**](README.md) | [中文](README-中文.md) | [Spanish](README-Spanish.md) ]
 # Minecraft-ResourcePack-Migrator 1.14 ~ 1.21.4+
 
 A tool designed to convert Minecraft resource packs from older versions (1.14) to 1.21.4+ format.  
@@ -14,7 +14,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 > 
 > However, if the issue arises from files outside the `models/item` directory, or from files within `models/item` that do not contain `Custom Model Data` or `Damage`, this is not a fault of the converter, as it does not process those files.  
 
-![image](https://github.com/user-attachments/assets/82d429e9-7e69-4825-8fe7-87471d206b70)
+![image](https://github.com/user-attachments/assets/6faa4cc0-f224-4b90-8142-7a0b7b22d4ca)
 
 ## Key Features
 

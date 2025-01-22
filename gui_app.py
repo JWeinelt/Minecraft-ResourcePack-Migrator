@@ -14,7 +14,7 @@ Features:
 - Cross-platform compatibility
 
 Author: RiceChen_
-Version: 1.4.1
+Version: 1.4.2
 """
 
 import sys
@@ -44,9 +44,9 @@ TRANSLATIONS = {
         "es": "Minecraft Migrador de Resource Packs (1.14 ~ 1.21.4+)"
     },
     "language_selection": {
-        "zh": "語言選擇 | Language Selection",
-        "en": "語言選擇 | Language Selection",
-        "es": "語言選擇 | Selector de lenguaje"
+        "zh": "語言選擇 | Language Selection | Selector de lenguaje",
+        "en": "語言選擇 | Language Selection | Selector de lenguaje",
+        "es": "語言選擇 | Language Selection | Selector de lenguaje"
     },
     "conversion_mode": {
         "zh": "轉換模式",
@@ -89,9 +89,9 @@ TRANSLATIONS = {
         "es": "Iniciar Conversion"
     },
     "author": {
-        "zh": "作者：RiceChen_ | 版本：1.4.1",
-        "en": "Author: RiceChen_ | v1.4.1",
-        "es": "Creador: RiceChen_ | Version: v1.4.1"
+        "zh": "作者：RiceChen_ | 版本：1.4.2",
+        "en": "Author: RiceChen_ | v1.4.2",
+        "es": "Creador: RiceChen_ | Version: v1.4.2"
     },
     "clear_files": {
         "zh": "清除檔案",
@@ -212,6 +212,11 @@ TRANSLATIONS = {
         "zh": "問題回報與功能請求",
         "en": "Bug and Feature Request",
         "es": "Errores y Solicitud de nuevas Caracteristicas"
+    },
+    "file_generation_failed": {
+        "zh": "未能生成輸出檔案",
+        "en": "Failed to generate output file",
+        "es": "Error al generar el archivo de salida"
     }
 }
 
@@ -379,7 +384,7 @@ class ResourcePackConverter(tk.Tk):
         
         # Basic window setup
         self.title(get_text("title", "zh"))
-        self.geometry("800x660")
+        self.geometry("1000x660")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.current_svg = None
@@ -515,7 +520,6 @@ class ResourcePackConverter(tk.Tk):
         )
         self.lang_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # Chinese option
         ttk.Radiobutton(
             self.lang_frame,
             text="中文",
@@ -523,12 +527,18 @@ class ResourcePackConverter(tk.Tk):
             value="zh"
         ).pack(side=tk.LEFT, padx=20, pady=5)
         
-        # English option
         ttk.Radiobutton(
             self.lang_frame,
             text="English",
             variable=self.current_lang,
             value="en"
+        ).pack(side=tk.LEFT, padx=20, pady=5)
+
+        ttk.Radiobutton(
+            self.lang_frame,
+            text="Spanish",
+            variable=self.current_lang,
+            value="es"
         ).pack(side=tk.LEFT, padx=20, pady=5)
 
     def create_conversion_mode(self):
@@ -984,7 +994,7 @@ class ResourcePackConverter(tk.Tk):
                     )
                 else:
                     raise Exception(get_text("conversion_failed", lang).format(
-                        "未能生成輸出檔案" if lang == "zh" else "Failed to generate output file"
+                        get_text("file_generation_failed", lang)
                     ))
                 
             finally:

@@ -10,11 +10,11 @@ It handles:
 - Conversion process execution
 - Progress reporting and error handling
 
-The script can operate in both Chinese and English, with full bilingual support
-for all user interactions and messages.
+The script supports multiple languages (Chinese, English, and Spanish), with full 
+multilingual support for all user interactions and messages.
 
 Author: RiceChen_
-Version: 1.4.1
+Version: 1.4.2
 """
 
 import subprocess
@@ -37,115 +37,173 @@ console = Console()
 TRANSLATIONS = {
     "checking_python": {
         "zh": "檢查 Python 環境...",
-        "en": "Checking Python environment..."
+        "en": "Checking Python environment...",
+        "es": "Verificando el entorno de Python..."
     },
     "python_version_error": {
         "zh": "錯誤：需要 Python 3.6 或更新版本",
-        "en": "Error: Python 3.6 or newer is required"
+        "en": "Error: Python 3.6 or newer is required",
+        "es": "Error: Se requiere Python 3.6 o una versión más reciente"
     },
     "installing_package": {
         "zh": "正在安裝必要套件 {}...",
-        "en": "Installing required package {}..."
+        "en": "Installing required package {}...",
+        "es": "Instalando paquete requerido {}..."
     },
     "package_install_error": {
         "zh": "錯誤：無法安裝 {}",
-        "en": "Error: Unable to install {}"
+        "en": "Error: Unable to install {}",
+        "es": "Error: No se puede instalar {}"
     },
     "input_dir_error": {
         "zh": "錯誤：找不到輸入資料夾 '{}'",
-        "en": "Error: Input directory '{}' not found"
+        "en": "Error: Input directory '{}' not found",
+        "es": "Error: No se encontró el directorio de entrada '{}'"
     },
     "create_input_dir": {
         "zh": "請建立 '{}' 資料夾並放入要轉換的檔案",
-        "en": "Please create '{}' directory and place files to convert"
+        "en": "Please create '{}' directory and place files to convert",
+        "es": "Por favor, cree el directorio '{}' y coloque los archivos a convertir"
     },
     "searching_files": {
         "zh": "搜尋可轉換的檔案...",
-        "en": "Searching for convertible files..."
+        "en": "Searching for convertible files...",
+        "es": "Buscando archivos convertibles..."
     },
     "no_files_found": {
         "zh": "找不到需要轉換的檔案！",
-        "en": "No files found for conversion!"
+        "en": "No files found for conversion!",
+        "es": "¡No se encontraron archivos para convertir!"
     },
     "check_list_title": {
         "zh": "檢查清單",
-        "en": "Checklist"
+        "en": "Checklist",
+        "es": "Lista de verificación"
     },
     "check_json_exists": {
         "zh": "輸入資料夾中有 JSON 檔案",
-        "en": "JSON files exist in input folder"
+        "en": "JSON files exist in input folder",
+        "es": "Existen archivos JSON en la carpeta de entrada"
     },
     "check_json_format": {
         "zh": "JSON 檔案包含 'overrides' 和 'custom_model_data' 欄位",
-        "en": "JSON files contain 'overrides' and 'custom_model_data' fields"
+        "en": "JSON files contain 'overrides' and 'custom_model_data' fields",
+        "es": "Los archivos JSON contienen campos 'overrides' y 'custom_model_data'"
     },
     "check_file_location": {
         "zh": "檔案放在正確的位置（{}/ 資料夾中）",
-        "en": "Files are in correct location (in {} folder)"
+        "en": "Files are in correct location (in {} folder)",
+        "es": "Los archivos están en la ubicación correcta (en la carpeta {})"
     },
     "found_files_title": {
         "zh": "可轉換的檔案",
-        "en": "Convertible Files"
+        "en": "Convertible Files",
+        "es": "Archivos Convertibles"
     },
     "continue_prompt": {
         "zh": "是否繼續轉換？[Y/n]",
-        "en": "Continue conversion? [Y/n]"
+        "en": "Continue conversion? [Y/n]",
+        "es": "¿Continuar con la conversión? [S/n]"
     },
     "conversion_cancelled": {
         "zh": "已取消轉換",
-        "en": "Conversion cancelled"
+        "en": "Conversion cancelled",
+        "es": "Conversión cancelada"
     },
     "env_check_complete": {
         "zh": "環境檢查完成，開始執行轉換程式...",
-        "en": "Environment check complete, starting conversion..."
+        "en": "Environment check complete, starting conversion...",
+        "es": "Verificación del entorno completada, iniciando conversión..."
     },
     "converter_not_found": {
         "zh": "錯誤：找不到轉換程式 (converter.py)",
-        "en": "Error: Converter program (converter.py) not found"
+        "en": "Error: Converter program (converter.py) not found",
+        "es": "Error: No se encontró el programa convertidor (converter.py)"
     },
     "check_converter_location": {
         "zh": "請確認 converter.py 檔案在正確的位置",
-        "en": "Please ensure converter.py is in the correct location"
+        "en": "Please ensure converter.py is in the correct location",
+        "es": "Por favor, asegúrese de que converter.py esté en la ubicación correcta"
     },
     "execution_error": {
         "zh": "執行過程中發生錯誤：{}",
-        "en": "Error during execution: {}"
+        "en": "Error during execution: {}",
+        "es": "Error durante la ejecución: {}"
     },
     "press_enter": {
         "zh": "按 Enter 鍵結束程式...",
-        "en": "Press Enter to exit..."
+        "en": "Press Enter to exit...",
+        "es": "Presione Enter para salir..."
     },
     "title": {
         "zh": "Minecraft 資源包更新工具 (1.14 ~ 1.21.4+)",
-        "en": "Minecraft Resource Pack Migrator (1.14 ~ 1.21.4+)"
+        "en": "Minecraft Resource Pack Migrator (1.14 ~ 1.21.4+)",
+        "es": "Migrador de Paquetes de Recursos de Minecraft (1.14 ~ 1.21.4+)"
+    },
+    "enter_mode_choice": {
+        "zh": "請輸入 1、2 或 3",
+        "en": "Please enter 1, 2 or 3",
+        "es": "Por favor ingrese 1, 2 o 3"
+    },
+    "enter_language_choice": {
+        "zh": "請輸入 1、2 或 3",
+        "en": "Please enter 1, 2 or 3",
+        "es": "Por favor ingrese 1, 2 o 3"
+    },
+    "language_selection_prompt": {
+        "zh": "語言選擇 | Language Selection | Selección de idioma",
+        "en": "語言選擇 | Language Selection | Selección de idioma",
+        "es": "語言選擇 | Language Selection | Selección de idioma"
+    },
+    "language_chinese": {
+        "zh": "中文",
+        "en": "Chinese",
+        "es": "Chino"
+    },
+    "language_english": {
+        "zh": "英文",
+        "en": "English",
+        "es": "Inglés"
+    },
+    "language_spanish": {
+        "zh": "西班牙文",
+        "en": "Spanish",
+        "es": "Español"
     },
     "choose_language": {
         "zh": "選擇語言",
-        "en": "Choose Language"
+        "en": "Choose Language",
+        "es": "Seleccionar Idioma"
     },
     "column_number": {
         "zh": "序號",
-        "en": "No."
+        "en": "No.",
+        "es": "Núm."
     },
     "column_file_path": {
         "zh": "檔案路徑",
-        "en": "File Path"
+        "en": "File Path",
+        "es": "Ruta del Archivo"
     },
     "choose_mode": {
         "zh": "選擇轉換模式",
-        "en": "Choose Conversion Mode"
+        "en": "Choose Conversion Mode",
+        "es": "Seleccionar Modo de Conversión"
     },
     "mode_cmd": {
         "zh": "Custom Model Data 轉換",
-        "en": "Custom Model Data Conversion"
+        "en": "Custom Model Data Conversion",
+        "es": "Conversión de Custom Model Data"
     },
     "mode_item": {
         "zh": "Item Model 轉換",
-        "en": "Item Model Conversion"
+        "en": "Item Model Conversion",
+        "es": "Conversión de Item Model"
     },
     "mode_damage": {
         "zh": "Damage 轉換",
-        "en": "Damage Conversion"
+        "en": "Damage Conversion",
+        "es": "Conversión de Daño"
     }
 }
 
@@ -353,7 +411,7 @@ def main(lang="zh"):
     console.print("3. [yellow]" + get_text("mode_damage", lang) + "[/yellow]")
     
     mode_choice = Prompt.ask(
-        "Please enter 1, 2 or 3 / 請輸入 1、2 或 3",
+        f"\n{get_text('enter_mode_choice', lang)}",
         default="1"
     ).strip()
     
@@ -464,21 +522,24 @@ if __name__ == "__main__":
     
     # Display language selection prompt with bilingual options
     console.print(Panel(
-        get_text("choose_language", "zh") + " / " + get_text("choose_language", "en"),
+        get_text("language_selection_prompt", "zh"),
         style="cyan",
         expand=False
     ))
-    console.print("1. [green]中文[/green]")
-    console.print("2. [blue]English[/blue]")
-    
-    # Get user's language preference
+    console.print(f"1. [green]{get_text('language_chinese', 'zh')}[/green]")
+    console.print(f"2. [blue]{get_text('language_english', 'en')}[/blue]")
+    console.print(f"3. [yellow]{get_text('language_spanish', 'es')}[/yellow]")
+
     lang_choice = Prompt.ask(
-        "Please enter 1 or 2 / 請輸入 1 或 2",
+        f"{get_text('enter_language_choice', 'zh')} / {get_text('enter_language_choice', 'en')} / {get_text('enter_language_choice', 'es')}",
         default="1"
     ).strip()
-    
-    # Set language based on user choice
-    lang = "zh" if lang_choice == "1" else "en"
+
+    lang = {
+        "1": "zh",
+        "2": "en",
+        "3": "es"
+    }.get(lang_choice, "zh")
     
     # Display program title in selected language
     console.print(Panel(

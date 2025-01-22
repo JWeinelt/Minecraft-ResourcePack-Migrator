@@ -1,4 +1,4 @@
-README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
+README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) | [Spanish](README-Spanish.md) ]
 # Minecraft-ResourcePack-Migrator 1.14 ~ 1.21.4+
 
 一個專門用於將 Minecraft 資源包（Resource Pack）從舊版本（1.14）轉換至 1.21.4+ 版本的工具。  
@@ -14,7 +14,7 @@ README LANGUAGES [ [English](README.md) | [**中文**](README-中文.md) ]
 > 但如果你發現出問題的點在非` model/item `目錄，或者於` model/item `但是沒有` Custom Model Data `或` Damage `，  
 > 那麼這並非轉換器的疏漏，因為轉換器根本不會處理這些檔案。  
 
-![image](https://github.com/user-attachments/assets/5ed328e1-edde-43f8-a258-42b8e6f79031)
+![image](https://github.com/user-attachments/assets/ae194619-5f2e-4b30-b7f8-c314cc7fc593)
 
 ## 主要功能
 

@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.4.1
+Version: 1.4.2
 """
 
 import json
@@ -46,79 +46,98 @@ CustomProgress = None
 TRANSLATIONS = {
     "processing_start": {
         "zh": "開始處理檔案...",
-        "en": "Starting file processing..."
+        "en": "Starting file processing...",
+        "es": "Iniciando procesamiento de archivos..."
     },
     "adjusting_structure": {
         "zh": "調整資料夾結構...",
-        "en": "Adjusting folder structure..."
+        "en": "Adjusting folder structure...",
+        "es": "Ajustando estructura de carpetas..."
     },
     "moving_files": {
         "zh": "移動檔案中",
-        "en": "Moving files"
+        "en": "Moving files",
+        "es": "Moviendo archivos"
     },
     "processing_files": {
         "zh": "處理檔案中",
-        "en": "Processing files"
+        "en": "Processing files",
+        "es": "Procesando archivos"
     },
     "creating_zip": {
         "zh": "建立ZIP檔案...",
-        "en": "Creating ZIP file..."
+        "en": "Creating ZIP file...",
+        "es": "Creando archivo ZIP..."
     },
     "compressing_files": {
         "zh": "壓縮檔案中",
-        "en": "Compressing files"
+        "en": "Compressing files",
+        "es": "Comprimiendo archivos"
     },
     "moved_models": {
         "zh": "已將物品模型從 {} 移動到 {}",
-        "en": "Moved item models from {} to {}"
+        "en": "Moved item models from {} to {}",
+        "es": "Modelos de objetos movidos de {} a {}"
     },
     "process_complete": {
         "zh": "處理完成！",
-        "en": "Processing complete!"
+        "en": "Processing complete!",
+        "es": "¡Procesamiento completado!"
     },
     "converted_files_count": {
         "zh": "已轉換 {} 個檔案",
-        "en": "Converted {} files"
+        "en": "Converted {} files",
+        "es": "Se convirtieron {} archivos"
     },
     "output_file": {
         "zh": "輸出檔案",
-        "en": "Output file"
+        "en": "Output file",
+        "es": "Archivo de salida"
     },
     "current_file": {
         "zh": "當前檔案：{}",
-        "en": "Current file: {}"
+        "en": "Current file: {}",
+        "es": "Archivo actual: {}"
     },
     "input_dir_error": {
         "zh": "錯誤：找不到輸入資料夾 '{}'",
-        "en": "Error: Input directory '{}' not found"
+        "en": "Error: Input directory '{}' not found",
+        "es": "Error: No se encontró el directorio de entrada '{}'"
     },
     "error_occurred": {
         "zh": "發生錯誤：{}",
-        "en": "Error occurred: {}"
+        "en": "Error occurred: {}",
+        "es": "Ocurrió un error: {}"
     },
     "file_table_title": {
         "zh": "檔案處理報告",
-        "en": "File Processing Report"
+        "en": "File Processing Report",
+        "es": "Reporte de Procesamiento de Archivos"
     },
     "file_name": {
         "zh": "檔案名稱",
-        "en": "File Name"
+        "en": "File Name",
+        "es": "Nombre del Archivo"
     },
     "file_type": {
         "zh": "類型",
-        "en": "Type"
+        "en": "Type",
+        "es": "Tipo"
     },
     "file_status": {
         "zh": "狀態",
-        "en": "Status"
+        "en": "Status",
+        "es": "Estado"
     },
     "status_converted": {
         "zh": "已轉換",
-        "en": "Converted"
+        "en": "Converted",
+        "es": "Convertido"
     },
     "status_copied": {
         "zh": "已複製",
-        "en": "Copied"
+        "en": "Copied",
+        "es": "Copiado"
     },
 }
 
