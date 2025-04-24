@@ -654,13 +654,13 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
             base_path = "minecraft:item/tipped_arrow"
         elif "horse_armor" in normalized_filename:
             # Set base_path based on horse armor type
-            if "diamond" in normalized_filename:
-                base_path = "minecraft:item/diamond_horse_armor"
-            elif "golden" in normalized_filename:
-                base_path = "minecraft:item/golden_horse_armor"
-            elif "iron" in normalized_filename:
-                base_path = "minecraft:item/iron_horse_armor"
-            elif "leather" in normalized_filename:
+            #if "diamond" in normalized_filename:
+            #    base_path = "minecraft:item/diamond_horse_armor"
+            #elif "golden" in normalized_filename:
+            #    base_path = "minecraft:item/golden_horse_armor"
+            #elif "iron" in normalized_filename:
+            #    base_path = "minecraft:item/iron_horse_armor"
+            if "leather" in normalized_filename:
                 base_path = "minecraft:item/leather_horse_armor"
             else:
                 base_path = "minecraft:item/leather_horse_armor" 
