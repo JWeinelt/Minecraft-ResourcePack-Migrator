@@ -15,7 +15,7 @@ Features:
 The module can be used both as a standalone command-line tool and as part of a GUI application.
 Author: RiceChen_
 
-Version: 1.4.2
+Version: 1.4.3
 """
 
 import json
@@ -367,9 +367,10 @@ def is_potion_model(json_data, file_path=""):
     potion_files = [
         "potion.json",
         "splash_potion.json",
-        "lingering_potion.json"
+        "lingering_potion.json",
+        "tipped_arrow.json"
     ]
-    return normalized_path in potion_files
+    return normalized_path in potion_files or "horse_armor" in normalized_path
 
 def is_chest_model(json_data, file_path=""):
     """
@@ -648,7 +649,22 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
     is_potion = is_potion_model(json_data, file_path)
     if is_potion:
         textures = json_data.get("textures", {})
-        if textures.get("layer0") == "item/splash_potion_overlay":
+        normalized_filename = os.path.basename(file_path).lower()
+        if normalized_filename == "tipped_arrow.json":
+            base_path = "minecraft:item/tipped_arrow"
+        elif "horse_armor" in normalized_filename:
+            # Set base_path based on horse armor type
+            if "diamond" in normalized_filename:
+                base_path = "minecraft:item/diamond_horse_armor"
+            elif "golden" in normalized_filename:
+                base_path = "minecraft:item/golden_horse_armor"
+            elif "iron" in normalized_filename:
+                base_path = "minecraft:item/iron_horse_armor"
+            elif "leather" in normalized_filename:
+                base_path = "minecraft:item/leather_horse_armor"
+            else:
+                base_path = "minecraft:item/leather_horse_armor" 
+        elif textures.get("layer0") == "item/splash_potion_overlay":
             base_path = "minecraft:item/splash_potion"
         elif textures.get("layer0") == "item/lingering_potion_overlay":
             base_path = "minecraft:item/lingering_potion"
@@ -867,14 +883,24 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
             }
         }
     elif is_potion:
-        fallback = {
-            "type": "model",
-            "model": base_path,
-            "tints": [{
-                "type": "minecraft:potion",
-                "default": -13083194
-            }]
-        }
+        if "horse_armor" in normalized_filename:
+            fallback = {
+                "type": "model",
+                "model": base_path,
+                "tints": [{
+                    "type": "minecraft:dye",
+                    "default": -6265536
+                }]
+            }
+        else:
+            fallback = {
+                "type": "model",
+                "model": base_path,
+                "tints": [{
+                    "type": "minecraft:potion",
+                    "default": -13083194
+                }]
+            }
     elif is_fishing_rod:
         base_model = None
         cast_model = None
@@ -1243,6 +1269,16 @@ def convert_json_format(json_data, is_item_model=False, file_path=""):
                             "model": model_path
                         }
                     }
+                    if normalized_filename == "tipped_arrow.json":
+                        entry["model"]["tints"] = [{
+                            "type": "minecraft:potion",
+                            "default": -13083194
+                        }]
+                    elif "horse_armor" in normalized_filename:
+                        entry["model"]["tints"] = [{
+                            "type": "minecraft:dye",
+                            "default": -6265536
+                        }]
                     new_format["model"]["entries"].append(entry)
         
         # Second pass: process shield and fishing rod models
