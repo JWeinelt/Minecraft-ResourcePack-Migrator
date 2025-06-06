@@ -28,7 +28,7 @@ This tool primarily handles the conversion of item model JSON formats, helping c
 - Real-time conversion progress display
 - Automatically packages into a ready-to-use resource pack
 - GUI interface for easy operation
-- Supports both English and Chinese interfaces
+- Supports English, Chinese and German interfaces
 
 ## Supported Versions
 
